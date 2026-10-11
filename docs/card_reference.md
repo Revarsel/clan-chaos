@@ -1,0 +1,35 @@
+# Card Reference
+
+The shared deck has **22 card types × 2 copies = 44 cards**. Definitions live in `packages/game-content/src/cards.ts`; effects are implemented in `packages/game-engine/src` (`raids.ts` for raid and defense cards, `commands.ts` for instants). Every card has a behavioral test in `tests/unit/cards.test.ts`.
+
+**Timing**
+- **Raid card**: attached to a raid order during Scheme. A raid can use one primary card and one support card ("either" cards can fill either slot). Cards marked *stronghold only* can't be used on location ambushes.
+- **Defense**: secretly committed during Build or Scheme. You can commit up to 2 per round, and no duplicates.
+- **Instant**: played immediately during Build or Scheme.
+
+You pay a card's cost when you play or commit it. Cards that are played go to the discard pile, which is reshuffled into the deck when the draw pile runs out.
+
+| # | Card | Category | Timing | Cost | Effect | Counters |
+|---|---|---|---|---|---|---|
+| 1 | 💰 **Sneaky Heist** | classic | Raid (primary, stronghold only) | 2 gold | +3 attack. If the raid succeeds, also steal up to 4 extra gold. | Booby Trap, Counter-Ambush, Decoy Vault. |
+| 2 | 🪤 **Booby Trap** | classic | Defense | 2 materials | +3 defense against the first raid on your stronghold. If it defeats that raid, the attacker loses 2 more gold. | Tunnel Rats, Decoy Caravan. |
+| 3 | 🌫️ **Smoke and Mirrors** | classic | Raid (either) | 2 gold | +1 attack. Your raid target is hidden from ordinary scouting. | Eagle-Eye Scout still sees the cards; Counter-Intel is unnecessary. |
+| 4 | 🛡️ **Last-Minute Reinforcements** | classic | Defense | 3 food | +2 defense against the next incoming raid. Must be committed before the Scheme deadline. | Decoy Caravan, Tunnel Rats. |
+| 5 | 🦅 **Eagle-Eye Scout** | reconnaissance | Instant → player | 1 gold | Reveal a rival's committed raid cards and true target right now (sees through Smoke and Mirrors and False Flag). | Counter-Intel blocks it. |
+| 6 | 🚩 **False Flag** | reconnaissance | Raid (support) | 1 gold | +1 attack. Choose a decoy rival: scouting reports your raid as aimed at them until the reveal. | Eagle-Eye Scout sees the true target. |
+| 7 | 🪧 **Trail Markers** | reconnaissance | Instant → location | 1 gold | Reveal the exact stock of a location for this round and next, and +1 yield on your gathering trips there for that time. | Sabotage Supplies still reduces your yield. |
+| 8 | 🕵️ **Counter-Intel** | reconnaissance | Instant | 1 gold | This round and next, enemy scouting and Eagle-Eye Scout attempts on you fail (they still pay), and they are told it was blocked. | Nothing reveals you; but it costs a card and gold. |
+| 9 | 🐀 **Tunnel Rats** | attack | Raid (primary, stronghold only) | 2 gold | +1 attack. Ignore up to 3 points of the target's fort defense. | Barricades, Booby Trap and Reinforced Gates are not bypassed. |
+| 10 | 🪵 **Battering Ram** | attack | Raid (primary, stronghold only) | 3 materials | +2 attack. If the raid succeeds, deal 2 extra fort damage. | Counter-Ambush prevents fort damage. |
+| 11 | 🐫 **Decoy Caravan** | attack | Raid (support, stronghold only) | 2 food | Distract defenders: reduce the defender's barricade and card defense by up to 2 (fort defense unaffected). | A strong fort does not fall for it. |
+| 12 | 🏃 **Hit and Run** | attack | Raid (support) | 1 gold | Steal at most 3 units, but a failed raid costs you no gold penalty (Booby Trap still applies). | Booby Trap's extra penalty still applies. |
+| 13 | 🚪 **Reinforced Gates** | defense | Defense | 2 materials | +2 defense against every raid on your stronghold this round. | Decoy Caravan. |
+| 14 | ⚔️ **Counter-Ambush** | defense | Defense | 2 gold | Each raid on you this round with attack 6+ loses 3 attack (others lose 1). If one still succeeds, it steals half as much and deals no fort damage. | Several small raids. |
+| 15 | 🗝️ **Decoy Vault** | defense | Defense | 1 materials | Each successful raid on you this round steals 3 fewer units. | Sneaky Heist's bonus gold is not reduced. |
+| 16 | 🧺 **Emergency Evacuation** | defense | Instant | 2 food | Move up to 8 of your resources into a safe reserve. They cannot be stolen this round and return after upkeep. | Reserved resources cannot be spent either. |
+| 17 | 🛒 **Merchant Caravan** | economy | Instant | 1 gold | This round and next, your market exchange rate improves from 3:1 to 2:1. | - |
+| 18 | ⛏️ **Resource Rush** | economy | Instant → location | 1 food | This round and next, your trips to the chosen location yield +2 and parties there can carry 2 more. | Sabotage Supplies; ambushes at contested sites. |
+| 19 | 🧨 **Sabotage Supplies** | economy | Instant → player | 2 gold | This round and next, a rival's gathering trips yield 2 less (minimum 1). | Resource Rush, Trail Markers. |
+| 20 | 🥫 **Emergency Rations** | economy | Instant | 1 gold | Gain 2 food now and skip your next upkeep payment. | - |
+| 21 | 📜 **Bounty Contract** | politics | Instant → player | 1 gold | Nominate a rival. Your first successful raid on them this round or next earns +2 bonus points. | Defend, or offer a truce. |
+| 22 | 🤝 **Unstable Truce** | politics | Instant → player | 1 food | Offer a rival a truce for this round and next. If accepted, each side that never raids the other gains +2 points when it ends. | Betrayal forfeits the bonus (but is allowed). |

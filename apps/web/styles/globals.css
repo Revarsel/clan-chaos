@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  background: #2b4a2a;
+  color: #28180c;
+  font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-image: radial-gradient(circle at 20% 10%, rgba(255, 230, 160, 0.18), transparent 40%),
+    radial-gradient(circle at 80% 90%, rgba(120, 200, 120, 0.15), transparent 45%);
+  min-height: 100dvh;
+}
+
+@layer components {
+  .panel {
+    @apply rounded-2xl border-2 border-bark-700/70 bg-parchment-100 shadow-card;
+  }
+  .panel-title {
+    @apply font-display text-sm font-bold uppercase tracking-wider text-bark-700;
+  }
+  .btn {
+    @apply inline-flex select-none items-center justify-center gap-1 rounded-xl border-2 border-bark-800 px-3 py-1.5 font-display text-sm font-bold shadow-pop transition active:translate-y-0.5 active:shadow-none disabled:cursor-not-allowed disabled:opacity-45 disabled:active:translate-y-0;
+  }
+  .btn-primary {
+    @apply btn bg-gold-400 text-bark-900 hover:bg-gold-300;
+  }
+  .btn-danger {
+    @apply btn bg-ember-500 text-white hover:bg-ember-400;
+  }
+  .btn-green {
+    @apply btn bg-moss-500 text-white hover:bg-moss-400;
+  }
+  .btn-plain {
+    @apply btn bg-parchment-50 text-bark-800 hover:bg-white;
+  }
+  .input {
+    @apply w-full rounded-xl border-2 border-bark-700/60 bg-white px-3 py-2 font-display text-bark-900 outline-none focus:border-royal-500;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full border border-bark-700/40 bg-parchment-50 px-2 py-0.5 text-xs font-semibold;
+  }
+}

@@ -124,7 +124,7 @@ function simulate(seed: string, playerCount: number) {
       resolutionsSeen++;
       raidsPerRound.set(state.resolutionRound, state.resolutions.length);
     }
-    if (state.phase === "ended") break;
+    if ((state.phase as string) === "ended") break;
     for (const pid of state.seatOrder) {
       if (r() < 0.5) continue;
       const command = randomCommand(state, pid, r);

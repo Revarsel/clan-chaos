@@ -1,0 +1,131 @@
+"use client";
+import { useEffect, useState } from "react";
+import { RESOURCE_TYPES, formatResources, type PlayerView, type Resources } from "@clan-chaos/shared";
+import { DEFAULT_CONFIG } from "@clan-chaos/game-content";
+import { useGame } from "@/hooks/useGame";
+import { RESOURCE_ICON } from "@/lib/format";
+
+const zero = (): Resources => ({ gold: 0, materials: 0, food: 0 });
+
+function Amounts({ value, onChange }: { value: Resources; onChange: (r: Resources) => void }) {
+  return (
+    <div className="flex gap-1">
+      {RESOURCE_TYPES.map((t) => (
+        <label key={t} className="flex items-center gap-0.5 text-sm">
+          {RESOURCE_ICON[t]}
+          <input
+            type="number"
+            min={0}
+            max={100}
+            className="input w-14 px-1 py-0.5"
+            value={value[t]}
+            onChange={(e) => onChange({ ...value, [t]: Math.max(0, Math.min(100, Number(e.target.value) || 0)) })}
+          />
+        </label>
+      ))}
+    </div>
+  );
+}
+
+export function TradePanel({ view, partner }: { view: PlayerView; partner: string | null }) {
+  const { send } = useGame();
+  const rivals = view.players.filter((p) => p.id !== view.youId && !p.eliminated);
+  const [to, setTo] = useState(partner ?? rivals[0]?.id ?? "");
+  const [give, setGive] = useState<Resources>(zero());
+  const [want, setWant] = useState<Resources>(zero());
+  useEffect(() => {
+    if (partner) setTo(partner);
+  }, [partner]);
+  const canAct = view.phase === "build" || view.phase === "scheme";
+  const name = (id: string) => view.players.find((p) => p.id === id)?.name ?? "?";
+  const self = view.self!;
+  const left = DEFAULT_CONFIG.maxTradeOffersPerRound - self.tradesOfferedThisRound;
+  const strip = (r: Resources) => Object.fromEntries(Object.entries(r).filter(([, n]) => n > 0));
+
+  return (
+    <div className="space-y-3 text-sm">
+      {view.truceOffer && (
+        <div className="animate-pop rounded-xl border-2 border-royal-500 bg-royal-400/15 p-2">
+          🤝 <b>{name(view.truceOffer.fromId)}</b> offers an Unstable Truce (this round and next; +2 points each if honoured).
+          <div className="mt-1 flex gap-2">
+            <button className="btn-green px-2 py-0.5 text-xs" disabled={!canAct} onClick={() => send({ type: "truceRespond", accept: true }, "Truce accepted")}>
+              Accept
+            </button>
+            <button className="btn-plain px-2 py-0.5 text-xs" disabled={!canAct} onClick={() => send({ type: "truceRespond", accept: false }, "Truce refused")}>
+              Refuse
+            </button>
+          </div>
+        </div>
+      )}
+      {view.truces.length > 0 && (
+        <div className="text-xs text-bark-700">
+          Truces: {view.truces.map((t) => `${name(t.a)} ⇄ ${name(t.b)} (to round ${t.untilRound})`).join("; ")}
+        </div>
+      )}
+      <div className="rounded-xl border-2 border-bark-700/40 bg-parchment-50 p-2.5">
+        <div className="panel-title mb-1">New offer ({left} left this round)</div>
+        <select className="input mb-2 py-1" value={to} onChange={(e) => setTo(e.target.value)}>
+          {rivals.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+        <div className="mb-1 text-xs font-bold">You give</div>
+        <Amounts value={give} onChange={setGive} />
+        <div className="mb-1 mt-2 text-xs font-bold">You want</div>
+        <Amounts value={want} onChange={setWant} />
+        <button
+          className="btn-primary mt-2 w-full"
+          disabled={!canAct || !to || left <= 0}
+          onClick={async () => {
+            if (await send({ type: "tradeOffer", toPlayerId: to, give: strip(give), want: strip(want) }, "Offer sent")) {
+              setGive(zero());
+              setWant(zero());
+            }
+          }}
+        >
+          Send offer
+        </button>
+      </div>
+      <div>
+        <div className="panel-title mb-1">Offers</div>
+        {view.trades.length === 0 && <p className="text-xs text-bark-600">No offers this round.</p>}
+        <ul className="space-y-1.5">
+          {[...view.trades].reverse().map((t) => {
+            const incoming = t.toId === view.youId;
+            return (
+              <li key={t.id} className="rounded-lg bg-parchment-50 p-2 text-xs">
+                {incoming ? (
+                  <>
+                    <b>{name(t.fromId)}</b> gives {formatResources(t.give)} for your {formatResources(t.want)}
+                  </>
+                ) : (
+                  <>
+                    To <b>{name(t.toId)}</b>: your {formatResources(t.give)} for {formatResources(t.want)}
+                  </>
+                )}
+                <span className="ml-1 chip">{t.status}</span>
+                {t.status === "open" && incoming && (
+                  <span className="ml-1 inline-flex gap-1">
+                    <button className="btn-green px-2 py-0 text-xs" disabled={!canAct} onClick={() => send({ type: "tradeRespond", offerId: t.id, accept: true }, "Trade complete")}>
+                      Accept
+                    </button>
+                    <button className="btn-plain px-2 py-0 text-xs" disabled={!canAct} onClick={() => send({ type: "tradeRespond", offerId: t.id, accept: false })}>
+                      Reject
+                    </button>
+                  </span>
+                )}
+                {t.status === "open" && !incoming && (
+                  <button className="btn-plain ml-1 px-2 py-0 text-xs" onClick={() => send({ type: "tradeCancel", offerId: t.id })}>
+                    Cancel
+                  </button>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </div>
+  );
+}
