@@ -1,4 +1,5 @@
 import type { MatchConfig } from "@clan-chaos/game-content";
+import type { RateLimitOptions } from "./socket/handlers.js";
 
 export interface ServerConfig {
   host: string;
@@ -6,6 +7,7 @@ export interface ServerConfig {
   corsOrigins: string[] | "*";
   persistence: boolean;
   match: Partial<MatchConfig>;
+  rateLimits?: RateLimitOptions;
 }
 
 const num = (v: string | undefined, fallback: number): number => {

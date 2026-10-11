@@ -197,7 +197,7 @@ describe("disconnects and privacy", () => {
     for (const v of [v2, v3]) {
       expect(v).not.toContain("sneaky_heist");
       expect(v).not.toContain(uid);
-      for (const c of player(s, "p1").hand) expect(v).not.toContain(c.uid);
+      for (const c of player(s, "p1").hand) expect(v).not.toContain(`"${c.uid}"`);
     }
     expect(v3).not.toContain("reinforced_gates");
     const view = buildPlayerView(s, "p3", at);

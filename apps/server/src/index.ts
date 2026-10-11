@@ -41,7 +41,7 @@ export async function startGameServer(config: ServerConfig, persistence?: Persis
     onRoomChanged: (room) => broadcastLobby(io, rooms, room),
     onMatchChanged: (room) => broadcastMatch(io, room),
   });
-  registerHandlers(io, rooms);
+  registerHandlers(io, rooms, config.rateLimits);
   const sweeper = setInterval(() => rooms.sweep(), 60_000);
 
   await new Promise<void>((resolve) => http.listen(config.port, config.host, resolve));

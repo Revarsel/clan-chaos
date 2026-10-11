@@ -27,9 +27,13 @@ interface SocketData {
 export type GameServer = Server<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>;
 type GameSocket = Socket<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>;
 
-const joinLimiter = new RateLimiter(20, 60_000);
-const chatLimiter = new RateLimiter(5, 5_000);
-const commandLimiter = new RateLimiter(25, 1_000);
+export interface RateLimitOptions {
+  joinsPerMinute: number;
+  chatPer5s: number;
+  commandsPerSecond: number;
+}
+
+export const DEFAULT_RATE_LIMITS: RateLimitOptions = { joinsPerMinute: 20, chatPer5s: 5, commandsPerSecond: 25 };
 
 function parse<T>(schema: ZodType<T>, payload: unknown): T {
   return schema.parse(payload);
@@ -68,7 +72,10 @@ export function broadcastMatch(io: GameServer, room: Room): void {
   }
 }
 
-export function registerHandlers(io: GameServer, rooms: RoomManager): void {
+export function registerHandlers(io: GameServer, rooms: RoomManager, limits: RateLimitOptions = DEFAULT_RATE_LIMITS): void {
+  const joinLimiter = new RateLimiter(limits.joinsPerMinute, 60_000);
+  const chatLimiter = new RateLimiter(limits.chatPer5s, 5_000);
+  const commandLimiter = new RateLimiter(limits.commandsPerSecond, 1_000);
   io.on("connection", (socket: GameSocket) => {
     const ip = socket.handshake.address;
 
