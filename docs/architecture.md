@@ -33,7 +33,7 @@ packages/shared: types, Zod schemas and socket contracts used by both sides
 - PostgreSQL stores:
   - guest sessions (only a SHA-256 hash of each reconnect token, plus its expiry)
   - matches and participants
-  - a public event history (one `raids_resolved` row per round)
+  - a public event history (`raids_resolved` and `round_end` rows for every round)
   - a debug snapshot at the end of each round
   - final results and rankings
 - Database writes go through a per-match promise queue. A write failure is logged and never stops the game.

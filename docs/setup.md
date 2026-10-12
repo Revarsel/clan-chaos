@@ -38,7 +38,7 @@ Open http://localhost:3000.
 
 ## Playing over Wi-Fi
 - The server and web app listen on `0.0.0.0`. At startup the server prints its LAN address, for example `192.168.1.20`.
-- Other devices open `http://192.168.1.20:3000`. The web app automatically connects to port 4000 on the same host. Set `NEXT_PUBLIC_SERVER_URL` to override this.
+- Other devices open `http://192.168.1.20:3000`. The web app automatically connects to port 4000 on the same host. To override it (for example, if you change `SERVER_PORT`), create `apps/web/.env.local` containing `NEXT_PUBLIC_SERVER_URL=http://192.168.1.20:4000`. The web app only reads env files inside `apps/web/`, not the root `.env`, and the value is fixed at build time for `pnpm build`.
 - **Windows firewall:** allow Node.js on *Private* networks when prompted, or run in an admin PowerShell:
   ```powershell
   New-NetFirewallRule -DisplayName "Clan Chaos" -Direction Inbound -Protocol TCP -LocalPort 3000,4000 -Action Allow -Profile Private
