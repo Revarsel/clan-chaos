@@ -20,5 +20,6 @@
 | Add cards, clans, events, commands | [developer_guide.md](developer_guide.md) |
 | See what is built, and what isn't | [features.md](features.md) |
 | See why unspecified details were decided as they were | [balance_decisions.md](balance_decisions.md) |
+| See the new-player usability audit and improvement plan | [usability_audit.md](usability_audit.md) |
 
 Also in the repository root: [README.md](../README.md) (quick start) and [CHECKLIST.md](../CHECKLIST.md) (milestone status and known limitations).
