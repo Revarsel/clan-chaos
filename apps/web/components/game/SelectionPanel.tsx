@@ -53,8 +53,17 @@ export function SelectionPanel({
     await fn();
     setPending(null);
   };
+  const roundTripMs = (locId: string) => {
+    const loc = getLocation(locId)!;
+    return 2 * travelDurationMs(home, loc.position, DEFAULT_CONFIG.partySpeed) + loc.gatherMs;
+  };
   const sendParty = (p: PartyView, locId: string) =>
-    run(p.id, () => send({ type: "gather", partyId: p.id, locationId: locId }, `Party dispatched to ${getLocation(locId)?.name}. Server accepted the order.`));
+    run(p.id, () =>
+      send(
+        { type: "gather", partyId: p.id, locationId: locId },
+        `Party dispatched to ${getLocation(locId)?.name}. It gets home in about ${formatSeconds(roundTripMs(locId))}; you can spend what it brings when it gets home.`,
+      ),
+    );
   const recall = (p: PartyView) =>
     run(p.id, () => send({ type: "recall", partyId: p.id }, p.status === "gathering" ? "Party recalled with what it has gathered so far." : "Party recalled; it returns empty."));
 
@@ -92,7 +101,7 @@ export function SelectionPanel({
           <b>{partyLine(party, now)}</b>
         </p>
         <p className="text-xs text-bark-700">
-          Carrying capacity: up to {DEFAULT_CONFIG.partyCapacity} units per trip.
+          Carrying capacity: up to {DEFAULT_CONFIG.partyCapacity} units per trip. The load is added to your stores, and can be spent, when the party gets home.
           {party.load ? ` ${party.status === "gathering" ? "Expected load" : "Carrying"}: ${party.load}${party.status === "gathering" ? " (if it finishes)" : ""}.` : ""}
           {loc && party.status !== "idle" && ` Destination: ${loc.name} (${loc.safe ? "safe" : "contested — can be ambushed"}).`}
         </p>
@@ -160,7 +169,9 @@ export function SelectionPanel({
                 <p>Stock goes down as parties gather and slowly regrows. Exact numbers are only shown with Trail Markers.</p>
               </InfoTip>
             </div>
-            <p className="text-xs text-bark-700">Trip from your stronghold: {tripLine(locationId)}.</p>
+            <p className="text-xs text-bark-700">
+              Trip from your stronghold: {tripLine(locationId)}. You can spend what a party gathers when it gets home.
+            </p>
             {here.length > 0 && (
               <p className="text-xs">
                 Parties here:{" "}

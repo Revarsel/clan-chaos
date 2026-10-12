@@ -35,6 +35,7 @@ model Match {
 
   participants MatchParticipant[]
   results      MatchResult[]
+  feedback     PlaytestFeedback[]
   events       MatchEvent[]
   snapshots    MatchSnapshot[]
 
@@ -98,4 +99,22 @@ model MatchSnapshot {
   match     Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
 
   @@index([matchId])
+}
+
+/// Optional answers from the post-match feedback prompt. One row per player per match (resubmitting updates it).
+model PlaytestFeedback {
+  id        String   @id @default(cuid())
+  matchId   String
+  playerId  String
+  name      String
+  clan      String
+  confusing String
+  hardest   String
+  objective String
+  helped    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  match     Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@unique([matchId, playerId])
 }

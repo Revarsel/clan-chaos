@@ -25,7 +25,7 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
         aria-label={title}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
-        className="max-h-[88dvh] w-full max-w-lg animate-slideUp overflow-y-auto rounded-t-2xl border-2 border-bark-800 bg-parchment-100 p-4 shadow-card outline-none sm:rounded-2xl"
+        className="max-h-[88dvh] w-full max-w-lg animate-slideUp overflow-y-auto rounded-t-2xl border-2 border-bark-800 bg-parchment-100 p-4 text-left font-body text-bark-900 shadow-card outline-none sm:rounded-2xl"
       >
         <div className="mb-2 flex items-start justify-between gap-2">
           <h2 className="font-display text-lg font-black">{title}</h2>

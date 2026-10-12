@@ -22,7 +22,8 @@ The gameplay HUD and action-flow work addressed these items (see `docs/frontend.
 | P2-12 Map legend; P2-13 ambush explanation; P2-15 trade affordability/expiry; P2-16 ability discoverability; P2-17 exposed-fort warning | Done |
 | P3-19 Accessibility | Partly: map sites, castles and parties are labelled, keyboard-focusable buttons; popovers and sheets support Escape |
 | R1 Defense-card limit bug | Fixed in the engine, with tests |
-| P0-1 Rules/onboarding for link joiners; P2-14 event highlights on the map; P2-18 "while you were away" | Not done (onboarding work was paused) |
+| P0-1 Rules for link joiners | Done: `RulesSummary` on the join form and lobby, plus the in-game 📖 Rules button (guided tutorial still not done) |
+| P2-14 event highlights on the map; P2-18 "while you were away" | Not done |
 
 ## 1. Method
 

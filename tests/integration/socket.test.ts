@@ -288,10 +288,26 @@ describe("match play over sockets", () => {
       expect(cl.view!.results!.standings.length).toBe(3);
     }
     await waitFor(() => a.lobby?.status === "finished");
+    // Post-match feedback: validated, accepted once the match has ended, resubmittable.
+    expect((await emit(a, "feedback:submit", { confusing: "", hardest: "", objective: "", helped: "" })).ok).toBe(false);
+    const fb = await emit<{ stored: boolean }>(a, "feedback:submit", { confusing: "the raid preview", objective: "most points" });
+    expect(fb.ok).toBe(true);
+    if (fb.ok) expect(fb.stored).toBe(false); // this test server runs without a database
+    expect((await emit(a, "feedback:submit", { hardest: "x".repeat(601) })).ok).toBe(false);
     expect((await emit(b, "room:returnToLobby", {})).ok).toBe(false);
     expect((await emit(a, "room:returnToLobby", {})).ok).toBe(true);
     await waitFor(() => c.lobby?.status === "lobby");
   }, 60_000);
+
+  it("rejects feedback before the match has ended", async () => {
+    const room = await makeRoom(2);
+    const before = await emit(room.host, "feedback:submit", { confusing: "lobby" });
+    expect(before.ok).toBe(false);
+    await startMatch(room);
+    const during = await emit(room.host, "feedback:submit", { confusing: "mid-match" });
+    expect(during.ok).toBe(false);
+    if (!during.ok) expect(during.message).toMatch(/when the match ends/);
+  });
 
   it("eliminated players cannot act", async () => {
     const room = await makeRoom(3);

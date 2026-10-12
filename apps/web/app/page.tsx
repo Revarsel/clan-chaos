@@ -6,6 +6,7 @@ import { CLAN_LIST } from "@clan-chaos/game-content";
 import { getSocket } from "@/lib/socket";
 import { lastName, saveSession } from "@/lib/session";
 import { Logo } from "@/components/Logo";
+import { RulesSummary } from "@/components/RulesSummary";
 
 function call(event: "room:create" | "room:join", payload: unknown): Promise<Ack<SessionInfo>> {
   const socket = getSocket();
@@ -104,25 +105,7 @@ export default function Home() {
 
         <section className="panel animate-slideUp p-5">
           <h2 className="panel-title mb-3">How to play</h2>
-          <ol className="space-y-2 text-sm text-bark-800">
-            <li>
-              <b>8 rounds</b>, each with <b>Build</b> (30s), <b>Scheme</b> (30s) and <b>Resolution</b> (15s).
-            </li>
-            <li>
-              <b>Gather</b>: send parties to mines 🪙, forests 🪵 and farms 🍖. Contested sites pay more but can be ambushed.
-            </li>
-            <li>
-              <b>Build</b>: barricades, repairs, mercenaries and tactical cards.
-            </li>
-            <li>
-              <b>Scheme</b>: secretly commit one raid per round, plus defensive cards. Attack must <i>beat</i> defense.
-            </li>
-            <li>
-              <b>Score</b>: +2 per successful raid, +3 per fort destroyed, +4 per elimination, event bonuses, an intact fort and
-              leftover resources.
-            </li>
-            <li>Trade, chat and make promises. Nothing stops anyone from breaking them.</li>
-          </ol>
+          <RulesSummary />
           <div className="mt-4 grid grid-cols-2 gap-2">
             {CLAN_LIST.map((c) => (
               <div key={c.id} className="rounded-xl border border-bark-700/30 bg-parchment-50 p-2 text-xs">

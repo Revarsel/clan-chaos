@@ -43,7 +43,8 @@ type AckEvent =
   | "lobby:start"
   | "room:returnToLobby"
   | "chat:send"
-  | "game:sync";
+  | "game:sync"
+  | "feedback:submit";
 
 const GameContext = createContext<GameContextValue | null>(null);
 

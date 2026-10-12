@@ -8,7 +8,7 @@ import {
 } from "@clan-chaos/shared";
 import { CARDS, DEFAULT_CONFIG, getLocation } from "@clan-chaos/game-content";
 import { previewAmbush, previewStrongholdRaid, type RaidPreview } from "@clan-chaos/game-engine";
-import { costReason } from "./availability";
+import { costReason, missingResources } from "./availability";
 
 /** Local, unsent raid plan. Lives only in this browser tab until submitted. */
 export interface RaidDraft {
@@ -87,8 +87,8 @@ export function cardOptions(view: PlayerView, d: RaidDraft, slot: "primary" | "s
       if (d.target?.kind === "location" && def.strongholdOnly) return { card, ok: false, reason: "Strongholds only, not ambushes" };
       const cost: Partial<Resources> = { ...def.cost };
       if (other) for (const t of RESOURCE_TYPES) cost[t] = (cost[t] ?? 0) + (CARDS[other.cardId].cost[t] ?? 0);
-      const r = costReason(self.resources, cost);
-      return r ? { card, ok: false, reason: r } : { card, ok: true };
+      const missing = missingResources(self.resources, cost);
+      return missing ? { card, ok: false, reason: `Needs ${missing}` } : { card, ok: true };
     });
 }
 

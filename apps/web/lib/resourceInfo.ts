@@ -10,7 +10,7 @@ export interface ResourceUse {
 export const RESOURCE_PURPOSE: Record<ResourceType, string> = {
   gold: "Gold pays for tactical cards, mercenaries, scouting and trades. A failed raid costs 2 gold.",
   materials: "Materials build barricades and repair your fort.",
-  food: `Food recruits mercenaries and grows your fort. Every clan pays ${ACTION_VALUES.upkeepFood} food upkeep at the end of each round.`,
+  food: `Food recruits mercenaries and grows your fort. Every clan pays ${ACTION_VALUES.upkeepFood} food upkeep at the end of each round. With no food, upkeep takes ${ACTION_VALUES.upkeepGoldFallback} gold instead; with no gold either, nothing else happens.`,
 };
 
 export function resourceUses(type: ResourceType, nextCardCost: number): ResourceUse[] {

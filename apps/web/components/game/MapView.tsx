@@ -368,6 +368,8 @@ export function MapLegend() {
     ["👣 🎒 ⛏", "Party walking / returning / gathering"],
     ["💥", "Party ambushed"],
     ["★ YOU", "Your stronghold"],
+    ["👣×2 at your castle", "Idle parties waiting at home"],
+    ["Party colour", "Its owner's colour; tap a site to see whose parties are there"],
     ["🛡5", "Fort defense"],
     ["🧱", "Has a barricade (size secret)"],
     ["⚔ on a castle", "Raid order submitted (target secret)"],

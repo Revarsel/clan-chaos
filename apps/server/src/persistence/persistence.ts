@@ -1,5 +1,12 @@
 import { PrismaClient, Prisma } from "@prisma/client";
-import type { MatchResultsView } from "@clan-chaos/shared";
+import type { FeedbackAnswers, MatchResultsView } from "@clan-chaos/shared";
+
+export interface FeedbackRecord extends FeedbackAnswers {
+  matchId: string;
+  playerId: string;
+  name: string;
+  clan: string;
+}
 import type { MatchState } from "@clan-chaos/game-engine";
 
 export interface Persistence {
@@ -12,6 +19,7 @@ export interface Persistence {
   snapshot(state: MatchState): Promise<void>;
   matchFinished(matchId: string, results: MatchResultsView): Promise<void>;
   matchAbandoned(matchId: string): Promise<void>;
+  saveFeedback(f: FeedbackRecord): Promise<void>;
   close(): Promise<void>;
 }
 
@@ -97,6 +105,15 @@ export class PrismaPersistence implements Persistence {
     await this.db.match.updateMany({ where: { id: matchId, status: "in_progress" }, data: { status: "abandoned", endedAt: new Date() } });
   }
 
+  async saveFeedback(f: FeedbackRecord) {
+    const { matchId, playerId, ...rest } = f;
+    await this.db.playtestFeedback.upsert({
+      where: { matchId_playerId: { matchId, playerId } },
+      create: { matchId, playerId, ...rest },
+      update: rest,
+    });
+  }
+
   async close() {
     await this.db.$disconnect();
   }
@@ -113,5 +130,9 @@ export class DisabledPersistence implements Persistence {
   async snapshot() {}
   async matchFinished() {}
   async matchAbandoned() {}
+  async saveFeedback(f: FeedbackRecord) {
+    // Not stored without a database; keep it visible to whoever runs the server.
+    console.log(`[feedback] ${JSON.stringify(f)}`);
+  }
   async close() {}
 }

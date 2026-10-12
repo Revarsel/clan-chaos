@@ -59,6 +59,10 @@ export class RoomManager {
 
   constructor(private readonly opts: RoomManagerOptions) {}
 
+  get persistence(): Persistence {
+    return this.opts.persistence;
+  }
+
   get(code: string): Room {
     const room = this.rooms.get(code.toUpperCase());
     if (!room) throw new RoomError("NOT_FOUND", "No room with that code");

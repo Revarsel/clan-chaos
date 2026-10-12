@@ -75,6 +75,8 @@ export interface ClientToServerEvents {
   "game:command": (payload: unknown, ack: AckFn<{ seq: number }>) => void;
   "chat:send": (payload: { text: string }, ack: AckFn) => void;
   "game:sync": (payload: Record<string, never>, ack: AckFn) => void;
+  /** Post-match playtest feedback; accepted only after the player's match has ended. */
+  "feedback:submit": (payload: unknown, ack: AckFn<{ stored: boolean }>) => void;
 }
 
 export interface ServerToClientEvents {

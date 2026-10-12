@@ -42,6 +42,8 @@ The in-match screen is ordered by importance: **phase & deadline → immediate o
 | `game/TradePanel` | Offers with affordability checks, informal-alliance note, truce offers |
 | `game/ResolutionOverlay` | Personal summary plus one `RaidResultCard` per raid: attacker and target, revealed cards, attack and defense breakdowns, final values, why it succeeded or failed, what was stolen, fort damage, points |
 | `ui/Popover`, `ui/Sheet` | Accessible tap/click popovers (no hover needed) and modal sheets |
+| `RulesSummary` | One-minute plain-language rules from the rule constants: home page, join form, lobby, and the 📖 Rules sheet in the phase banner |
+| `game/FeedbackForm` | Optional post-match feedback (4 questions) on the results screen, sent with `feedback:submit` |
 
 Display logic lives in framework-free modules in `apps/web/lib/` (`phaseInfo`, `availability`, `cardInfo`, `resourceInfo`, `raidPlan`, `resolutionText`, `objective`, `feed`). They only read the player's own `PlayerView` plus shared rule data; the server still validates everything. The raid preview and trip-time estimate call pure helpers exported by the game engine (`previewStrongholdRaid`, `previewAmbush`, `travelDurationMs`), the same functions the server uses, so the preview can't drift from the real calculation.
 

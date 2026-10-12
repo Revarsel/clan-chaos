@@ -4,7 +4,7 @@ import { RESOURCE_TYPES, type PlayerView, type ResourceType } from "@clan-chaos/
 import { CLANS, DEFAULT_CONFIG } from "@clan-chaos/game-content";
 import { RESOURCE_ICON, RESOURCE_LABEL, costText } from "@/lib/format";
 import { RESOURCE_PURPOSE, RESOURCE_SUBTITLE, cardsUsing, resourceSources, resourceUses } from "@/lib/resourceInfo";
-import { costReason } from "@/lib/availability";
+import { missingResources } from "@/lib/availability";
 import { Popover } from "../ui/Popover";
 
 type Tracked = ResourceType | "fort";
@@ -46,7 +46,7 @@ function Delta({ v }: { v?: number }) {
 }
 
 const chip =
-  "focus-ring flex min-w-[5.5rem] flex-col items-start rounded-xl border-2 border-bark-800 bg-parchment-50 px-2 py-1 text-left shadow-pop hover:bg-white";
+  "focus-ring flex w-full min-w-0 flex-col items-start rounded-xl border-2 border-bark-800 bg-parchment-50 px-1.5 py-1 text-left shadow-pop hover:bg-white sm:min-w-[5.5rem] sm:px-2";
 
 export function ResourceHud({ view }: { view: PlayerView }) {
   const self = view.self;
@@ -61,24 +61,29 @@ export function ResourceHud({ view }: { view: PlayerView }) {
   const clan = CLANS[me.clan];
 
   return (
-    <section aria-label="Your resources and fort" data-tour="hud" className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+    <section aria-label="Your resources and fort" className="space-y-1.5 sm:flex sm:flex-wrap sm:gap-1.5 sm:space-y-0">
+      {/* The four essentials always fit on screen, even on a phone. */}
+      <div data-tour="hud" className="grid grid-cols-4 gap-1 sm:flex sm:gap-1.5">
       {RESOURCE_TYPES.map((t) => {
         const sub = RESOURCE_SUBTITLE[t](self.resources, self.nextCardCost);
         return (
           <Popover
             key={t}
-            label={`${RESOURCE_LABEL[t]}: ${self.resources[t]} of ${self.storageCap}. Tap for details.`}
+            className="min-w-0"
+            label={`${RESOURCE_LABEL[t]}: ${self.resources[t]} of ${self.storageCap}${sub.warn ? `, warning: ${sub.text}` : ""}. Tap for details.`}
             buttonClassName={chip}
             trigger={
               <>
-                <span className="flex items-center gap-1 text-base">
+                <span className="flex items-center gap-0.5 text-sm sm:gap-1 sm:text-base">
                   <span aria-hidden>{RESOURCE_ICON[t]}</span>
                   <b className="tabular-nums">{self.resources[t]}</b>
                   <span className="text-[10px] text-bark-500">/{self.storageCap}</span>
                   <Delta v={deltas[t]} />
                 </span>
-                <span className={`whitespace-nowrap text-[10px] leading-tight ${sub.warn ? "font-bold text-ember-600" : "text-bark-600"}`}>
-                  {RESOURCE_LABEL[t]} · {sub.text}
+                <span className={`w-full truncate text-[10px] leading-tight ${sub.warn ? "font-bold text-ember-600" : "text-bark-600"}`}>
+                  {sub.warn && "⚠ "}
+                  {RESOURCE_LABEL[t]}
+                  <span className="hidden sm:inline"> · {sub.text}</span>
                 </span>
               </>
             }
@@ -92,11 +97,11 @@ export function ResourceHud({ view }: { view: PlayerView }) {
             <div className="mt-2 font-bold">Spent on</div>
             <ul className="text-xs">
               {resourceUses(t, self.nextCardCost).map((u) => {
-                const why = costReason(self.resources, u.cost);
+                const why = missingResources(self.resources, u.cost);
                 return (
                   <li key={u.label}>
                     {why ? "✖" : "✔"} {u.label} — {costText(u.cost)}
-                    {why && <span className="text-ember-600"> ({why.replace("Needs ", "need ").replace(".", "")})</span>}
+                    {why && <span className="text-ember-600"> (need {why})</span>}
                   </li>
                 );
               })}
@@ -109,18 +114,19 @@ export function ResourceHud({ view }: { view: PlayerView }) {
       })}
 
       <Popover
+        className="min-w-0"
         label={`Fort ${self.fortDefense} of ${self.fortMax}${self.fortDefense === 0 ? ", exposed" : ""}. Tap for details.`}
         buttonClassName={`${chip} ${self.fortDefense === 0 ? "border-ember-600 bg-ember-400/20" : ""}`}
         trigger={
           <>
-            <span className="flex items-center gap-1 text-base">
+            <span className="flex items-center gap-0.5 text-sm sm:gap-1 sm:text-base">
               <span aria-hidden>🏰</span>
               <b className="tabular-nums">{self.fortDefense}</b>
               <span className="text-[10px] text-bark-500">/{self.fortMax}</span>
               <Delta v={deltas.fort} />
             </span>
-            <span className={`whitespace-nowrap text-[10px] leading-tight ${self.fortDefense === 0 ? "font-bold text-ember-600" : "text-bark-600"}`}>
-              {self.fortDefense === 0 ? "Fort EXPOSED" : `Fort · max ${DEFAULT_CONFIG.fortMax}`}
+            <span className={`w-full truncate text-[10px] leading-tight ${self.fortDefense === 0 ? "font-bold text-ember-600" : "text-bark-600"}`}>
+              {self.fortDefense === 0 ? "⚠ Fort EXPOSED" : <>Fort<span className="hidden sm:inline"> · max {DEFAULT_CONFIG.fortMax}</span></>}
             </span>
           </>
         }
@@ -140,18 +146,20 @@ export function ResourceHud({ view }: { view: PlayerView }) {
         <p className="mt-1 text-xs">An intact fort (above 0) at the end of the match is worth +2 points.</p>
       </Popover>
 
+      </div>
+      <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 sm:contents">
       {self.barricadeDefense > 0 && (
-        <Popover label="Barricade. Tap for details." buttonClassName={chip} trigger={<><span className="text-base">🧱 <b>+{self.barricadeDefense}</b></span><span className="text-[10px] text-bark-600">Barricade</span></>}>
+        <Popover className="shrink-0" label="Barricade. Tap for details." buttonClassName={chip} trigger={<><span className="text-base">🧱 <b>+{self.barricadeDefense}</b></span><span className="text-[10px] text-bark-600">Barricade</span></>}>
           <p>Barricades add +{self.barricadeDefense} defense against the next raid on your stronghold, and are used up by that raid whether it succeeds or not. Max +{DEFAULT_CONFIG.maxBarricadeDefense}.</p>
           <p className="mt-1 text-xs text-bark-600">Rivals can see that you have a barricade, but not how big it is.</p>
         </Popover>
       )}
       {self.reinforcementDefense > 0 && (
-        <Popover label="Reinforcements. Tap for details." buttonClassName={chip} trigger={<><span className="text-base">🛡️ <b>+{self.reinforcementDefense}</b></span><span className="text-[10px] text-bark-600">Reinforced</span></>}>
+        <Popover className="shrink-0" label="Reinforcements. Tap for details." buttonClassName={chip} trigger={<><span className="text-base">🛡️ <b>+{self.reinforcementDefense}</b></span><span className="text-[10px] text-bark-600">Reinforced</span></>}>
           <p>Last-Minute Reinforcements: +{self.reinforcementDefense} defense against the next raid that hits you. Secret until then.</p>
         </Popover>
       )}
-      <Popover
+      <Popover className="shrink-0"
         label={`Mercenaries +${self.mercenaryBonus}. Tap for details.`}
         buttonClassName={chip}
         trigger={<><span className="text-base">🗡️ <b>+{self.mercenaryBonus}</b></span><span className="text-[10px] text-bark-600">Mercenaries</span></>}
@@ -159,7 +167,7 @@ export function ResourceHud({ view }: { view: PlayerView }) {
         <p>Mercenaries add attack to your next raid: +2 per recruit (3 gold + 2 food), up to +{DEFAULT_CONFIG.maxMercenaryBonus}.</p>
         <p className="mt-1">All of them join the next raid you submit and are used up by it, win or lose.</p>
       </Popover>
-      <Popover
+      <Popover className="shrink-0"
         label={`Score ${me.score} points. Tap for details.`}
         buttonClassName={`${chip} bg-gold-300`}
         trigger={<><span className="text-base">⭐ <b>{me.score}</b></span><span className="text-[10px] text-bark-700">Points</span></>}
@@ -172,7 +180,7 @@ export function ResourceHud({ view }: { view: PlayerView }) {
         )}
         <p className="mt-1 text-xs text-bark-600">See the Players tab for how points are earned and how ties are broken.</p>
       </Popover>
-      <Popover
+      <Popover className="shrink-0"
         label={`Clan ability: ${clan.abilityName}. Tap for details.`}
         buttonClassName={chip}
         trigger={
@@ -193,6 +201,7 @@ export function ResourceHud({ view }: { view: PlayerView }) {
           {me.clan === "toads" && "Applied automatically at the start of the match."}
         </p>
       </Popover>
+      </div>
     </section>
   );
 }

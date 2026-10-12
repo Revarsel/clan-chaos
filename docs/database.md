@@ -10,6 +10,7 @@ PostgreSQL via Prisma. Schema: `prisma/schema.prisma`. Migrations: `prisma/migra
 | `MatchParticipant` | When a match starts | One row per player: name, clan, seat, link to the guest session |
 | `MatchEvent` | During the match | Public history: `raids_resolved` (all raid results of a round) and `round_end`, one of each per round |
 | `MatchSnapshot` | At the end of each round and at match end | Full authoritative state as JSON (debug information; secrets included, so treat the table as private) |
+| `PlaytestFeedback` | When a player sends the optional post-match feedback form | Answers to the four feedback questions, one row per player per match (resubmitting updates it). See `first_time_player_test.md` |
 | `MatchResult` | When the match finishes | One row per player: rank, score, winner flag, eliminated flag, raids won, resources, fort, and the score breakdown (JSON) |
 
 A completed 8-round match produces 1 `Match`, N participants, N results, 16 events and 8 snapshots.

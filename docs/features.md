@@ -117,6 +117,8 @@ See `card_reference.md` for all card texts.
 | Action feed (gathering, trades, cards, raids, upkeep, events, points) with who/what changed/why | ✅ | Structured server log entries; private rows are only sent to their owner |
 | Resolution explanation with personal summary | ✅ | Revealed only after orders lock |
 | Responsive layout: desktop map-centred; phones with pinned banner, bottom tab bar and bottom sheets | ✅ | Verified at 390×664 and 1440×900 |
+| One-minute rules summary on join form, lobby, home page and behind an in-game 📖 Rules button | ✅ | `RulesSummary`, built from the rule constants |
+| Optional post-match feedback form (4 questions), stored in PostgreSQL | ✅ | `FeedbackForm`, `PlaytestFeedback` table |
 | Guided onboarding / practice tutorial | ❌ | Started, then paused at your request; only the shared groundwork exists |
 
 ## Protocol, security, persistence
@@ -132,7 +134,7 @@ See `card_reference.md` for all card texts.
 ## Quality
 | Feature | Status | Notes |
 |---|---|---|
-| Unit, integration and simulation tests | ✅ | 132 tests; see `testing.md` |
+| Unit, integration and simulation tests | ✅ | 133 tests; see `testing.md` |
 | Lint, strict TypeScript, production build | ✅ | |
 | Browser end-to-end test in the repo | ❌ | A 3-player playthrough was run manually with Playwright during development, but the script is not part of the repository |
 | Physical-device testing | ❌ | |

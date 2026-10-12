@@ -83,3 +83,17 @@ export const selectClanSchema = z.object({ clan: clanIdSchema });
 export const setReadySchema = z.object({ ready: z.boolean() });
 export const kickSchema = z.object({ playerId: id });
 export const chatSchema = z.object({ text: z.string().trim().min(1).max(200) });
+
+const answer = z.string().trim().max(600).default("");
+/** Optional post-match playtest feedback. At least one answer must be filled in. */
+export const feedbackSchema = z
+  .object({ confusing: answer, hardest: answer, objective: answer, helped: answer })
+  .refine((f) => Object.values(f).some((v) => v.length > 0), { message: "Answer at least one question" });
+export type FeedbackAnswers = z.infer<typeof feedbackSchema>;
+
+export const FEEDBACK_QUESTIONS: { key: keyof FeedbackAnswers; question: string }[] = [
+  { key: "confusing", question: "What was confusing?" },
+  { key: "hardest", question: "Which mechanic was hardest to understand?" },
+  { key: "objective", question: "What did you think your objective was?" },
+  { key: "helped", question: "Which screen or explanation helped most?" },
+];

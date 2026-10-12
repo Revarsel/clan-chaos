@@ -3,6 +3,7 @@ import { useRouter } from "next/navigation";
 import { CLANS } from "@clan-chaos/game-content";
 import { useGame } from "@/hooks/useGame";
 import { Logo } from "../Logo";
+import { FeedbackForm } from "./FeedbackForm";
 
 export function Results() {
   const { view, lobby, playerId, emitAck, toast, leave } = useGame();
@@ -68,6 +69,7 @@ export function Results() {
           </div>
         ))}
       </section>
+      <FeedbackForm />
       <div className="flex gap-3">
         {isHost ? (
           <button

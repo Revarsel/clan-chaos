@@ -559,7 +559,7 @@ function describeCommand(
       const loc = getLocation(cmd.locationId);
       if (!party || !loc) return null;
       return {
-        text: `You sent a party to ${loc.name}. It arrives in ${secs(party.arriveAt - now)}, gathers for ${secs(loc.gatherMs)}, then walks home.`,
+        text: `You sent a party to ${loc.name}. It arrives in ${secs(party.arriveAt - now)}, gathers for ${secs(loc.gatherMs)}, then walks home; you can spend what it brings once it is home.`,
         category: "gather",
         why: `A party carries at most ${state.config.partyCapacity} units per trip.`,
       };

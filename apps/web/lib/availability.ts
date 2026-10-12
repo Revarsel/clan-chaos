@@ -26,7 +26,7 @@ export function phaseReason(view: PlayerView, type: GameCommandType, now: number
   if (view.phase === "ended") return "The match is over.";
   if (!view.self) return "Spectators can't take actions.";
   if (me?.eliminated) return "Your clan has been eliminated; you are spectating.";
-  if (view.phase === "resolution") return "Orders are locked during Resolution.";
+  if (view.phase === "resolution") return "Orders are locked during Resolution. You can act again when the next round starts.";
   const allowed = COMMAND_PHASES[type];
   if (!allowed.includes(view.phase)) {
     const secs = Math.max(0, Math.ceil((view.phaseEndsAt - now) / 1000));
@@ -35,12 +35,20 @@ export function phaseReason(view: PlayerView, type: GameCommandType, now: number
   return null;
 }
 
-/** "Needs 2 more gold and 1 more food", or null when affordable. */
+const SOURCES: Record<keyof Resources, string> = { gold: "gold mines", materials: "forests", food: "farms" };
+
+/** "2 more gold and 1 more food", or null when affordable. */
+export function missingResources(resources: Resources, cost: Partial<Resources>): string | null {
+  const missing = RESOURCE_TYPES.filter((t) => resources[t] < (cost[t] ?? 0)).map((t) => `${(cost[t] ?? 0) - resources[t]} more ${RESOURCE_WORD[t]}`);
+  return missing.length ? missing.join(" and ") : null;
+}
+
+/** "Needs 2 more gold. Get more from …", or null when affordable. Always says how to recover. */
 export function costReason(resources: Resources, cost: Partial<Resources>): string | null {
-  const missing = RESOURCE_TYPES.filter((t) => resources[t] < (cost[t] ?? 0)).map(
-    (t) => `${(cost[t] ?? 0) - resources[t]} more ${RESOURCE_WORD[t]}`,
-  );
-  return missing.length ? `Needs ${missing.join(" and ")}.` : null;
+  const missing = missingResources(resources, cost);
+  if (!missing) return null;
+  const types = RESOURCE_TYPES.filter((t) => resources[t] < (cost[t] ?? 0));
+  return `Needs ${missing}. Get more by gathering at ${types.map((t) => SOURCES[t]).join(" or ")}, the market (Actions) or a trade.`;
 }
 
 const combine = (...reasons: (string | null)[]): Availability => {
@@ -145,8 +153,8 @@ export function acceptTradeAvailability(view: PlayerView, want: Partial<Resource
   const self = view.self;
   const phase = phaseReason(view, "tradeRespond", now);
   if (phase || !self) return no(phase ?? "Unavailable.");
-  const cost = costReason(self.resources, want);
-  if (cost) return no(`You can't pay: ${cost.toLowerCase()}`);
+  const missing = missingResources(self.resources, want);
+  if (missing) return no(`You can't pay: you need ${missing}.`);
   for (const t of RESOURCE_TYPES) {
     if (self.resources[t] - (want[t] ?? 0) + (give[t] ?? 0) > self.storageCap) return no(`That would put your ${t} over the ${self.storageCap} cap.`);
   }

@@ -2,6 +2,8 @@
 import { useState } from "react";
 import type { PlayerView } from "@clan-chaos/shared";
 import { formatSeconds, phaseInfo } from "@/lib/phaseInfo";
+import { RulesSummary } from "../RulesSummary";
+import { Sheet } from "../ui/Sheet";
 
 const TONE = {
   build: { bar: "bg-moss-500", band: "bg-moss-600", icon: "🔨" },
@@ -17,6 +19,7 @@ const TONE = {
 export function PhaseBanner({ view, now, compact }: { view: PlayerView; now: number; compact: boolean }) {
   const info = phaseInfo(view);
   const [details, setDetails] = useState(false);
+  const [rules, setRules] = useState(false);
   const remaining = Math.max(0, info.deadlineAt - now);
   const total = view.phase === "ended" ? 1 : view.phaseDurations[view.phase];
   const pct = Math.max(0, Math.min(100, (remaining / total) * 100));
@@ -75,8 +78,17 @@ export function PhaseBanner({ view, now, compact }: { view: PlayerView; now: num
           >
             {details ? "Less" : "What can I do?"}
           </button>
+          <button className="focus-ring shrink-0 rounded-md bg-black/20 px-2 py-0.5 text-xs font-bold" onClick={() => setRules(true)}>
+            📖 Rules
+          </button>
         </div>
       )}
+      <Sheet open={rules} onClose={() => setRules(false)} title="How to play">
+        <div className="text-bark-900">
+          <RulesSummary durations={view.phaseDurations} />
+          <p className="mt-2 text-xs text-bark-600">Tap any resource, card or ⓘ button for more detail. The Players panel shows the full scoring and tie-breakers.</p>
+        </div>
+      </Sheet>
       {details && (
         <div className="mt-1.5 grid gap-1 rounded-lg bg-black/20 p-2 text-xs sm:grid-cols-2 sm:text-sm">
           <div>

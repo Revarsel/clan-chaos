@@ -41,7 +41,10 @@ describe("availability reasons", () => {
     expect(phaseReason(view(s), "commitRaid", now)).toMatch(/Only during Scheme & Commit \(opens in \d+s\)/);
     expect(economyAvailability(view(s), "repairFort", now)).toEqual({ ok: false, reason: "Your fort is already fully repaired (7/7)." });
     setRes(s, "p1", 1, 0, 0);
-    expect(economyAvailability(view(s), "recruitMercenaries", now)).toEqual({ ok: false, reason: "Needs 2 more gold and 2 more food." });
+    expect(economyAvailability(view(s), "recruitMercenaries", now)).toEqual({
+      ok: false,
+      reason: "Needs 2 more gold and 2 more food. Get more by gathering at gold mines or farms, the market (Actions) or a trade.",
+    });
     setRes(s, "p1", 50, 0, 0);
     for (let i = 0; i < 4; i++) cmd(s, "p1", { type: "buyCard" });
     expect(economyAvailability(view(s), "buyCard", now)).toEqual({ ok: false, reason: "Your hand is full (7/7). Play or commit a card first." });
@@ -49,7 +52,7 @@ describe("availability reasons", () => {
     expect(scoutAvailability(view(s), "p2", now).ok).toBe(false);
     toScheme(s);
     tick(s, s.phaseEndsAt);
-    expect(phaseReason(view(s), "buyCard", s.phaseStartedAt + 1)).toBe("Orders are locked during Resolution.");
+    expect(phaseReason(view(s), "buyCard", s.phaseStartedAt + 1)).toMatch(/^Orders are locked during Resolution\. You can act again/);
   });
 
   it("explains why cards cannot be used, including the defense limit", () => {
@@ -66,7 +69,7 @@ describe("availability reasons", () => {
     cmd(s, "p1", { type: "commitDefense", cardUid: lmr.uid });
     expect(cardAvailability(view(s), gates, now)).toEqual({ ok: false, reason: "Defense limit reached (2/2 this round)." });
     const scout = { uid: giveCard(s, "p1", "eagle_eye_scout"), cardId: "eagle_eye_scout" as const };
-    expect(cardAvailability(view(s), scout, now)).toEqual({ ok: false, reason: "Needs 1 more gold." });
+    expect(cardAvailability(view(s), scout, now)).toMatchObject({ ok: false, reason: expect.stringMatching(/^Needs 1 more gold\. Get more by gathering at gold mines/) });
   });
 
   it("checks whether the viewer can afford to accept a trade", () => {

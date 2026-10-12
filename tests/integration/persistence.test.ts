@@ -45,6 +45,13 @@ describe.skipIf(!hasDb)("PostgreSQL persistence", () => {
       expect(events).toBeGreaterThanOrEqual(8);
       const snaps = await db.matchSnapshot.count({ where: { matchId: id } });
       expect(snaps).toBe(8);
+      // Post-match feedback: one row per player per match, resubmitting updates it.
+      const base = { matchId: id, playerId: `${id}_a`, name: "Alice", clan: "rats", hardest: "", objective: "most points", helped: "" };
+      await persistence.saveFeedback({ ...base, confusing: "first answer" });
+      await persistence.saveFeedback({ ...base, confusing: "edited answer" });
+      const fb = await db.playtestFeedback.findMany({ where: { matchId: id } });
+      expect(fb).toHaveLength(1);
+      expect(fb[0]!.confusing).toBe("edited answer");
       await db.match.delete({ where: { id } });
     } finally {
       await db.$disconnect();

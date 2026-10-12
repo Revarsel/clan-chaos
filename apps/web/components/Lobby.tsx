@@ -7,6 +7,7 @@ import { useGame } from "@/hooks/useGame";
 import { Logo } from "./Logo";
 import { ChatPanel } from "./game/ChatPanel";
 import { ConnectionBadge } from "./ConnectionBadge";
+import { RulesSummary } from "./RulesSummary";
 
 export function Lobby() {
   const { lobby, playerId, emitAck, toast, leave } = useGame();
@@ -79,7 +80,7 @@ export function Lobby() {
                 <div className="min-w-0 flex-1">
                   <div className="truncate font-display font-bold">
                     {p.name} {p.id === playerId && <span className="text-xs text-bark-500">(you)</span>}
-                    {p.isHost && <span title="Host"> 👑</span>}
+                    {p.isHost && <span className="text-xs text-bark-600"> 👑 host</span>}
                   </div>
                   <div className="truncate text-xs text-bark-600">{CLANS[p.clan].name}</div>
                 </div>
@@ -101,7 +102,10 @@ export function Lobby() {
 
           {me && (
             <>
-              <h3 className="panel-title mb-2 mt-5">Choose your clan</h3>
+              <h3 className="panel-title mt-5">Choose your clan</h3>
+              <p className="mb-2 text-xs text-bark-600">
+                You were given {CLANS[me.clan].name} automatically. Tap another clan to switch; each has one special ability.
+              </p>
               <div className="grid gap-2 sm:grid-cols-2">
                 {CLAN_LIST.map((c) => (
                   <button
@@ -142,7 +146,15 @@ export function Lobby() {
             </>
           )}
         </section>
-        <ChatPanel className="h-80 lg:h-auto" />
+        <div className="flex flex-col gap-4">
+          <details className="panel p-4" open>
+            <summary className="focus-ring cursor-pointer panel-title">📖 How to play (1 minute)</summary>
+            <div className="mt-2">
+              <RulesSummary />
+            </div>
+          </details>
+          <ChatPanel className="h-80" />
+        </div>
       </div>
     </main>
   );

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { RESOURCE_TYPES, formatResources, type PlayerView, type Resources } from "@clan-chaos/shared";
 import { DEFAULT_CONFIG } from "@clan-chaos/game-content";
 import { useGame } from "@/hooks/useGame";
-import { acceptTradeAvailability, costReason, phaseReason, tradeOfferAvailability } from "@/lib/availability";
+import { acceptTradeAvailability, missingResources, phaseReason, tradeOfferAvailability } from "@/lib/availability";
 import { InfoTip } from "../ui/Popover";
 import { RESOURCE_ICON } from "@/lib/format";
 
@@ -41,7 +41,7 @@ export function TradePanel({ view, partner, now }: { view: PlayerView; partner: 
   const canAct = view.phase === "build" || view.phase === "scheme";
   const offerAvail = tradeOfferAvailability(view, now);
   const respondBlock = phaseReason(view, "tradeRespond", now);
-  const offerCost = costReason(view.self!.resources, give);
+  const offerCost = missingResources(view.self!.resources, give);
   const name = (id: string) => view.players.find((p) => p.id === id)?.name ?? "?";
   const self = view.self!;
   const left = DEFAULT_CONFIG.maxTradeOffersPerRound - self.tradesOfferedThisRound;
@@ -103,7 +103,7 @@ export function TradePanel({ view, partner, now }: { view: PlayerView; partner: 
           Send offer
         </button>
         {!offerAvail.ok && <p className="mt-1 text-[11px] font-semibold text-ember-600">{offerAvail.reason}</p>}
-        {offerAvail.ok && offerCost && <p className="mt-1 text-[11px] font-semibold text-ember-600">You can't offer that: {offerCost.toLowerCase()}</p>}
+        {offerAvail.ok && offerCost && <p className="mt-1 text-[11px] font-semibold text-ember-600">You can't offer that: you would need {offerCost}. Lower the amounts.</p>}
       </div>
       <div>
         <div className="panel-title mb-1">Offers</div>

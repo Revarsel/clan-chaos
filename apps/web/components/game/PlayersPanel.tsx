@@ -42,6 +42,7 @@ export function PlayersPanel({ view, onSelect }: { view: PlayerView; onSelect: (
           ))}
         </tbody>
       </table>
+      <p className="text-[11px] text-bark-600">“Raids” = successful raids (the first tie-breaker).</p>
       <p className="text-[11px] text-bark-600">Visible to everyone: scores, raids won, forts, barricade (not its size), hand size, and whether a raid was submitted. Resources, cards and targets stay hidden.</p>
       <details className="rounded-xl border-2 border-bark-700/30 bg-parchment-50 p-2 text-sm" open>
         <summary className="focus-ring cursor-pointer font-display font-black">⭐ How to win</summary>

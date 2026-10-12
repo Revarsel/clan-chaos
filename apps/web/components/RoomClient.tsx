@@ -8,6 +8,7 @@ import { GameScreen } from "./game/GameScreen";
 import { Results } from "./game/Results";
 import { Toasts } from "./Toasts";
 import { Logo } from "./Logo";
+import { RulesSummary } from "./RulesSummary";
 
 export function RoomClient({ code }: { code: string }) {
   return (
@@ -48,7 +49,7 @@ function Centered({ children }: { children: React.ReactNode }) {
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center gap-6 px-4">
       <Logo small />
-      <div className="panel max-w-md p-6 text-center font-display text-bark-800">{children}</div>
+      <div className="panel w-full max-w-md p-6 text-center font-display text-bark-800">{children}</div>
     </main>
   );
 }
@@ -66,6 +67,12 @@ function JoinForm() {
       </button>
       {joinError && <p className="mt-3 text-sm font-semibold text-ember-600">{joinError}</p>}
       {status !== "connected" && <p className="mt-3 text-sm text-bark-600">Connecting to the game server…</p>}
+      <details className="mt-4 text-left" open>
+        <summary className="focus-ring cursor-pointer font-display font-bold">How to play (1 minute)</summary>
+        <div className="mt-2">
+          <RulesSummary />
+        </div>
+      </details>
       <Link href="/" className="mt-4 block text-sm text-royal-600 underline">
         Back home
       </Link>

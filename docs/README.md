@@ -21,5 +21,6 @@
 | See what is built, and what isn't | [features.md](features.md) |
 | See why unspecified details were decided as they were | [balance_decisions.md](balance_decisions.md) |
 | See the new-player usability audit and improvement plan | [usability_audit.md](usability_audit.md) |
+| Run a first-time-player usability test (plan, tasks, results, feedback) | [first_time_player_test.md](first_time_player_test.md) |
 
 Also in the repository root: [README.md](../README.md) (quick start) and [CHECKLIST.md](../CHECKLIST.md) (milestone status and known limitations).

@@ -4,6 +4,7 @@ import {
   chatSchema,
   commandEnvelopeSchema,
   createRoomSchema,
+  feedbackSchema,
   joinRoomSchema,
   kickSchema,
   resumeSchema,
@@ -213,6 +214,23 @@ export function registerHandlers(io: GameServer, rooms: RoomManager, limits: Rat
         const res = room.match.command(playerId, env.commandId, env.command);
         if (res.ok) reply({ ok: true, seq: res.seq });
         else reply({ ok: false, code: (res.code ?? "INVALID") as ErrorCode, message: res.message ?? "Not allowed" });
+      } catch (err) {
+        reply(toAckError(err));
+      }
+    });
+
+    socket.on("feedback:submit", (payload, ack) => {
+      const reply = (typeof ack === "function" ? ack : () => undefined) as AckFn<{ stored: boolean }>;
+      try {
+        const { room, playerId } = current();
+        const match = room.match;
+        if (!match || !match.finished) throw new RoomError("VALIDATION", "Feedback opens when the match ends");
+        if (!chatLimiter.allow(`feedback:${room.code}:${playerId}`)) throw new RoomError("VALIDATION", "Please wait a moment before sending again");
+        const answers = feedbackSchema.parse(payload);
+        const player = match.state.players[playerId];
+        const record = { matchId: match.state.id, playerId, name: player?.name ?? "?", clan: player?.clan ?? "?", ...answers };
+        match.persist(() => rooms.persistence.saveFeedback(record));
+        reply({ ok: true, stored: rooms.persistence.enabled });
       } catch (err) {
         reply(toAckError(err));
       }

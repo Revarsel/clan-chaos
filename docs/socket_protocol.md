@@ -17,6 +17,7 @@ Typed contracts are in `packages/shared/src/protocol.ts`. Every client→server 
 | `game:command` | `{ commandId, command }` | `{ seq }` |
 | `chat:send` | `{ text }` | |
 | `game:sync` | `{}` | asks the server to resend lobby and game state |
+| `feedback:submit` | `{ confusing?, hardest?, objective?, helped? }` (≤ 600 characters each, at least one filled) | `{ stored }`: only after the player's match has ended; `stored` is false when the server runs without a database |
 
 `command` is one of the following (see `gameCommandSchema`):
 `gather`, `recall`, `buildBarricade`, `repairFort`, `recruitMercenaries`, `buyCard`, `buyMerchantCard`, `clanGrowth`, `trainParty`, `scout`, `playCard`, `commitDefense`, `commitRaid`, `useClanAbility`, `foxfireRetarget`, `tradeOffer`, `tradeRespond`, `tradeCancel`, `marketExchange`, `truceRespond`.
