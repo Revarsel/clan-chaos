@@ -91,6 +91,7 @@ export function createMatch(opts: CreateMatchOptions): MatchState {
       reinforcementDefense: 0,
       hand: [],
       defenseCards: [],
+      defenseCommitsThisRound: [],
       usedDefenseUids: [],
       score: 0,
       scoreBreakdown: [],

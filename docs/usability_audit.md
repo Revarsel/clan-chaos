@@ -3,6 +3,27 @@
 **Status:** audit and plan only. No gameplay code was changed while producing it.
 **Audited revision:** `main` @ `915aebf`.
 
+## 0. Implementation status
+
+The gameplay HUD and action-flow work addressed these items (see `docs/frontend.md` and `docs/features.md`):
+
+| Item | Status |
+|---|---|
+| P0-2 Phases explained (purpose, deadline, what can be submitted) | Done: `PhaseBanner`, `ObjectiveStrip` |
+| P0-3 Raid preview vs known defense + confirmation | Done: guided `RaidPanel` |
+| P0-4 Parties visible and manageable; delivery notices | Done: `PartiesStrip`, party panel, idle badge on the map, feed notifications |
+| P1-5 Disabled actions explain why | Done: `lib/availability.ts` reasons on actions, cards, trades, scouting, raid submission |
+| P1-6 Personal raid summary; results re-openable | Done: overlay summary, Feed "Raid results" |
+| P1-7 Scoring visible in-game | Done: Players panel, points popover, points in the feed |
+| P1-8 Silent resource changes (upkeep etc.) | Done: structured feed entries incl. upkeep (log-only engine change), HUD recent-change badges |
+| P1-9 Cards readable, explained, drawn card named | Done: `CardView`, `CardDetails`, feed entry "You bought a card: …" |
+| P1-10 Mobile: pinned timer, scroll reset, bigger map labels/targets, no hover-only help | Done |
+| P1-11 Stale raid selections; lost drafts | Done: draft lifted to `GameScreen` and sanitised; panels stay mounted |
+| P2-12 Map legend; P2-13 ambush explanation; P2-15 trade affordability/expiry; P2-16 ability discoverability; P2-17 exposed-fort warning | Done |
+| P3-19 Accessibility | Partly: map sites, castles and parties are labelled, keyboard-focusable buttons; popovers and sheets support Escape |
+| R1 Defense-card limit bug | Fixed in the engine, with tests |
+| P0-1 Rules/onboarding for link joiners; P2-14 event highlights on the map; P2-18 "while you were away" | Not done (onboarding work was paused) |
+
 ## 1. Method
 
 - **Code inspection** of the actual implementation:

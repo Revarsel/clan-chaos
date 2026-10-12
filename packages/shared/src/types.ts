@@ -73,6 +73,9 @@ export interface Point {
   y: number;
 }
 
+/** Action-feed grouping for log entries. */
+export type FeedCategory = "gather" | "build" | "card" | "raid" | "trade" | "upkeep" | "event" | "score" | "phase" | "system";
+
 export interface ScoreEntry {
   round: number;
   points: number;

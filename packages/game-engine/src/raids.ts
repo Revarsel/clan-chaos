@@ -9,8 +9,9 @@ import {
 } from "@clan-chaos/shared";
 import { CARDS, SCORING, getLocation } from "@clan-chaos/game-content";
 import type { MatchState, PlayerState, RaidOrder } from "./state.js";
-import { addResource, award, fail, getPlayer, log, playerTotal, removeResource } from "./helpers.js";
+import { addResource, award, fail, getPlayer, log, playerTotal, removeResource, resourceDelta } from "./helpers.js";
 import { interceptParty, isGatherable } from "./gathering.js";
+import { raidAttack } from "./preview.js";
 
 const param = (id: CardId, key: string): number => CARDS[id].params[key] ?? 0;
 
@@ -70,21 +71,10 @@ function emptyView(order: number, raid: RaidOrder): RaidResolutionView {
 }
 
 function attackStrength(state: MatchState, raid: RaidOrder, view: RaidResolutionView): number {
-  let atk = state.config.baseAttack;
-  view.attackBreakdown.push(`Base ${state.config.baseAttack}`);
-  if (raid.mercenaryBonus > 0) {
-    atk += raid.mercenaryBonus;
-    view.attackBreakdown.push(`Mercenaries +${raid.mercenaryBonus}`);
-  }
-  for (const c of [raid.primary, raid.support]) {
-    if (!c) continue;
-    const a = param(c.cardId, "attack");
-    if (a !== 0) {
-      atk += a;
-      view.attackBreakdown.push(`${CARDS[c.cardId].name} ${a > 0 ? "+" : ""}${a}`);
-    }
-  }
-  return atk;
+  const cards = [raid.primary, raid.support].filter((c) => c !== null).map((c) => c!.cardId);
+  const { total, parts } = raidAttack(state.config.baseAttack, raid.mercenaryBonus, cards);
+  for (const p of parts) view.attackBreakdown.push(p.label === "Base" ? `Base ${p.value}` : `${p.label} ${p.value > 0 ? "+" : ""}${p.value}`);
+  return total;
 }
 
 const raidUses = (raid: RaidOrder, id: CardId) => raid.primary?.cardId === id || raid.support?.cardId === id;
@@ -288,7 +278,11 @@ function resolveLocationRaid(state: MatchState, raid: RaidOrder, attacker: Playe
       stolen[got.type] = (stolen[got.type] ?? 0) + stored;
       cap -= got.amount;
     }
-    log(state, now, `Your party at ${loc?.name} was ambushed by ${attacker.name}!`, "private", [owner.id]);
+    log(state, now, `Your party at ${loc?.name} was ambushed by ${attacker.name} and lost what it was carrying.`, "private", [owner.id], {
+      category: "raid",
+      actors: [attacker.id, owner.id],
+      why: "Parties gathering at contested sites can be ambushed.",
+    });
   }
   view.stolen = stolen;
   const any = Object.values(stolen).some((v) => (v ?? 0) > 0);
@@ -310,6 +304,9 @@ export function resolveRaids(state: MatchState, now: number): void {
     const raid = state.raids[attackerId] as RaidOrder;
     const attacker = getPlayer(state, attackerId);
     const view = emptyView(i + 1, raid);
+    const defender = raid.target.kind === "player" ? state.players[raid.target.playerId] : undefined;
+    const attackerBefore = { ...attacker.resources };
+    const defenderBefore = defender ? { ...defender.resources } : null;
     if (attacker.eliminated) {
       view.notes.push(`${attacker.name} was eliminated before their raid could land.`);
     } else if (raid.target.kind === "player") {
@@ -321,13 +318,38 @@ export function resolveRaids(state: MatchState, now: number): void {
     views.push(view);
     const targetName =
       raid.target.kind === "player" ? getPlayer(state, raid.target.playerId).name : getLocation(raid.target.locationId)?.name;
+    const why = view.success
+      ? `Attack ${view.attackStrength} was greater than defense ${view.defenseStrength}.`
+      : view.defenseBreakdown.length === 0 || view.attackStrength === 0
+        ? (view.notes[0] ?? "The raid did not land.")
+        : `Attack ${view.attackStrength} did not exceed defense ${view.defenseStrength}.`;
+    const actors = [attacker.id, ...(defender ? [defender.id] : [])];
     log(
       state,
       now,
       `${attacker.name} raided ${targetName}: ${view.success ? "SUCCESS" : "failed"} (${view.attackStrength} vs ${view.defenseStrength})` +
-        (view.success ? `, took ${formatResources(view.stolen)}` : ""),
+        (view.success ? `, took ${formatResources(view.stolen)}` : "") +
+        (view.fortDamage > 0 ? `, fort −${view.fortDamage}` : ""),
       "raid",
+      null,
+      { category: "raid", actors, why },
     );
+    // Private "what changed for you" entries.
+    log(state, now, `Your raid on ${targetName} ${view.success ? "succeeded" : "failed"}.`, "private", [attacker.id], {
+      category: "raid",
+      actors,
+      delta: resourceDelta(attackerBefore, attacker.resources),
+      why,
+    });
+    if (defender && defenderBefore) {
+      const lost = view.fortDamage > 0 ? ` Your fort lost ${view.fortDamage} (now ${defender.fortDefense}).` : "";
+      log(state, now, `${attacker.name} raided you and ${view.success ? "broke through" : "was repelled"}.${lost}`, "private", [defender.id], {
+        category: "raid",
+        actors,
+        delta: resourceDelta(defenderBefore, defender.resources),
+        why,
+      });
+    }
   });
   state.resolutions = views;
   state.resolutionRound = state.round;

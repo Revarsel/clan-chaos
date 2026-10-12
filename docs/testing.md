@@ -1,6 +1,6 @@
 # Testing
 
-112 automated tests, run with [Vitest](https://vitest.dev). Everything runs from the repository root.
+132 automated tests, run with [Vitest](https://vitest.dev). Everything runs from the repository root.
 
 ```bash
 pnpm test               # all suites (about a minute, mostly the simulations and the 8-round socket match)
@@ -21,6 +21,8 @@ SKIP_DB_TESTS=1 pnpm test                          # skip the PostgreSQL test
 | `unit/raids.test.ts` | 14 | Order and limits of raid commitment, strict "attack > defense", theft priority, fort damage, exposed fort, barricades, elimination, last-clan-standing end, sequential simultaneous raids, rotating order, resolve-once, ambushes |
 | `unit/cards.test.ts` | 28 | Each of the 22 cards' effect, cost and restriction. A final test fails if any card has no test |
 | `unit/clans-events-scoring.test.ts` | 16 | The 4 clan abilities, 8-round flow and timing, event announce/activate schedule, each event, end scoring, tie-breakers, inactivity, **no private data in other players' views** |
+| `unit/feed-phases-preview.test.ts` | 9 | Every command is rejected exactly outside its `COMMAND_PHASES` phases; the defense-card limit counts Last-Minute Reinforcements; action-feed entries record the real resource change, stay private where needed and never reveal a raid target early; the raid preview matches the resolved attack for every card combination |
+| `unit/web-ui-helpers.test.ts` | 11 | The UI's display logic against real engine views: phase explanations, "why unavailable" reasons, card explanations for all 22 cards, raid draft → submitted → resolved status, known-vs-hidden preview that ignores hidden defenses, illegal-card reasons, resolution explanations and personal summaries, feed rows, objectives |
 | `integration/socket.test.ts` | 17 | Real clients and a real server: rooms, invalid codes, duplicate names, host permissions, 2–8 limits, kick, late join, command validation and de-duplication, secret orders, trades, contested gathering, reconnect (good and bad token), inactivity, a full 8-round match with rematch, eliminated players, chat rate limits |
 | `integration/persistence.test.ts` | 1 | A full match is saved to PostgreSQL: match, participants, results, 8 snapshots, events |
 | `simulation/fullMatch.test.ts` | 13 | Random legal and illegal commands (and duplicates) in complete matches for 2, 3, 5, 8 players × 3 seeds, plus determinism. Invariants after every step: no negative or over-cap resources, fort and hand limits, scores equal their breakdown, every card in exactly one place, no leaks into other views, every match terminates |
@@ -33,4 +35,4 @@ SKIP_DB_TESTS=1 pnpm test                          # skip the PostgreSQL test
 ## Notes
 - The PostgreSQL test needs `DATABASE_URL` (it reads the root `.env`). It starts the same persistence layer as the server, which marks any `in_progress` matches as `abandoned`, so **do not run it against a database used by a live server**. It deletes the match it creates.
 - The integration tests rely on real timers; on a very slow machine you may need to re-run if a timing-based test fails once.
-- The repository has no browser end-to-end tests. The UI was verified by playing a full match in headless Chromium with Playwright during development (desktop and iPhone-sized windows, reconnect by reload, rematch), but that script is not part of the repo.
+- The repository has no browser end-to-end tests. The UI was verified with Playwright in headless Chromium during development: a full match (desktop and iPhone-sized windows, reconnect by reload, rematch), and a two-browser walkthrough of the gameplay HUD with 25 acceptance checks (phase banner, unavailable reasons, costs, known vs hidden combat information, order status, resolution explanation, feed, mobile layout). Those scripts are not part of the repo.

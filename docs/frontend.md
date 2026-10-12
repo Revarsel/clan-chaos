@@ -22,32 +22,34 @@ Next.js 14 (App Router) + React 18 + Tailwind CSS. All screens are client compon
 `lib/socket.ts` creates the single Socket.IO client (server URL = page hostname + `:4000`, or `NEXT_PUBLIC_SERVER_URL`). `lib/session.ts` handles `localStorage` safely (it works with storage disabled, but then sessions don't survive a reload).
 
 ## Screens and components
+The in-match screen is ordered by importance: **phase & deadline → immediate objective → resources & fort → map & parties → actions → cards → opponents & standings → feed, trade and chat.**
+
 | Component | Role |
 |---|---|
 | `Lobby` | Room code with copy link, player cards, clan picker with ability text, ready, host Start / remove, start blockers, chat |
-| `game/GameScreen` | Match layout: header (round + phase timer + connection), resource HUD, event banners, map, selection panel, tabbed side panel, resolution overlay |
-| `game/PhaseTimer` | Round counter, phase name, progress bar, countdown (pulses in the last 5 s) |
-| `game/ResourceHud` | Gold / materials / food (with safe reserve), fort, barricade, reinforcements, mercenaries, score, clan ability state |
-| `game/MapView` | The illustrated SVG map: terrain, locations with stock badges, castles with fort values and 🧱/⚔ markers, moving parties |
-| `game/SelectionPanel` | Opens when you tap a location (send/recall parties, ambush) or a stronghold (scout, trade, raid) |
-| `game/ActionsPanel` | **Build** tab: buy card, mercenaries, barricade, repair, growth, train party, clan ability, merchant card, market exchange, active effects |
-| `game/HandPanel` | **Cards** tab: your cards with play / commit-defense controls, committed defenses |
-| `game/RaidPanel` | **Raid** tab: target, primary and support cards, False Flag decoy, steal priority, attack estimate, commit; after committing: the sealed order and Foxfire's Change of Heart |
-| `game/TradePanel` | **Trade** tab: new offers, incoming/outgoing offers, truce offers |
-| `game/ChatPanel` | **Chat** tab (also in the lobby) |
-| `game/IntelPanel` | **Intel** tab: scouting reports and the chronicle (your visible log) |
-| `game/Scoreboard` | **Score** tab and desktop sidebar: ranking, fort, raid-ready and connection icons |
-| `game/ResolutionOverlay` | Reveals each raid card by card during Resolution (attack vs defense, breakdowns, loot, damage, points). Dismissable |
-| `game/EventBanner` | Active event and the announced next event |
-| `game/Results` | Winner, standings with "Why N points?", statistics, rematch (host) / leave |
-| `Toasts` | Action confirmations and errors |
+| `game/GameScreen` | Layout and tab routing. Desktop: map-centred with primary panels (Actions, Cards, Raid) on the right and secondary panels (Feed, Players, Trade, Chat) under the map. Phones: sticky phase banner, bottom tab bar, panels open in a bottom sheet that leaves the map usable. Also raises live notifications for new feed rows that matter to the player |
+| `game/PhaseBanner` | Sticky banner: round x/8, phase name, one-sentence purpose, countdown, the next deadline, what can still be submitted, and an expandable "What can I do?" list derived from the shared `COMMAND_PHASES` table |
+| `game/ObjectiveStrip` | The immediate objective plus optional suggestions computed from the player's own state (`lib/objective.ts`); "Go" buttons only navigate, never act |
+| `game/ResourceHud` | Gold/materials/food with storage cap, recent gain/loss, key costs, and tap-to-open explanations (purpose, what consumes it, what you can afford, where to gather it). Fort (exposed warning), barricade, reinforcements, mercenaries, points and clan ability chips with explanations |
+| `game/MapView` | Illustrated SVG map. Sites show resource icon, safe 🛡 / contested ⚔ badge and stock level; strongholds show fort, barricade, "★ YOU", idle-party count and the "raid submitted" marker. Sites, castles and your parties are keyboard-focusable buttons with labels. `MapLegend` explains the symbols |
+| `game/PartiesStrip` | Always-visible pills for your parties: status, destination, countdown, load/capacity |
+| `game/SelectionPanel` | Details for the selected site (yield, trip time, stock, who is gathering, send/recall your parties, plan an ambush), party (capacity, destination chooser, dispatch/recall with consequences) or stronghold (public info only, scout/trade/plan raid) |
+| `game/ActionsPanel` | Economy actions with effect, cost on the button and the exact reason when unavailable; Rats ability; Wandering Merchant; market; active effects |
+| `game/HandPanel` + `CardView` / `CardDetails` | Hand grouped as Play now / Defend / Raid cards, each with availability status; tapping a card opens a sheet with name, plain effect, cost, type, timing, target, when it takes effect, limits, counterplay and term explanations, plus the matching action |
+| `game/RaidPanel` | Guided raid planner: Draft → Submitted → Locked → Resolved stepper; target choice; known vs hidden target info (and your latest scouting); legal card slots with reasons; mercenaries; steal priority; attack vs defense preview from public data only; cost and failure penalty; confirmation sheet; inline rejection reason; Foxfire's Change of Heart |
+| `game/FeedPanel` | Chronological action feed (newest first, grouped by round, filters All / Mine / Raids / Points): what happened, who, resource changes, points, why. Private rows are marked "only you". Also holds the last round's raid results and your intel reports |
+| `game/PlayersPanel` | Standings (points, raids won, fort, status), what is public vs hidden, how to win, tie-breakers, and your own points |
+| `game/TradePanel` | Offers with affordability checks, informal-alliance note, truce offers |
+| `game/ResolutionOverlay` | Personal summary plus one `RaidResultCard` per raid: attacker and target, revealed cards, attack and defense breakdowns, final values, why it succeeded or failed, what was stolen, fort damage, points |
+| `ui/Popover`, `ui/Sheet` | Accessible tap/click popovers (no hover needed) and modal sheets |
 
-Eliminated players (and observers) see only **Chat, Intel, Score** tabs and a "spectating" banner.
+Display logic lives in framework-free modules in `apps/web/lib/` (`phaseInfo`, `availability`, `cardInfo`, `resourceInfo`, `raidPlan`, `resolutionText`, `objective`, `feed`). They only read the player's own `PlayerView` plus shared rule data; the server still validates everything. The raid preview and trip-time estimate call pure helpers exported by the game engine (`previewStrongholdRaid`, `previewAmbush`, `travelDurationMs`), the same functions the server uses, so the preview can't drift from the real calculation.
+
+Eliminated players (and observers) see only the **Feed, Players and Chat** panels and a "spectating" banner.
 
 ## Responsive design
-- **Desktop (≥ 1024 px):** the map and selection panel on the left, a 420 px tabbed side panel on the right, scoreboard under the map.
-- **Phones:** one column: timer, resources, map (scales with the screen), selection panel, then the tabbed panel with a horizontally scrollable tab bar. Touch targets are buttons, the map uses tap-to-select.
-- The viewport is locked to device width without zoom, and the layout uses `dvh` units so the browser toolbar doesn't clip it.
+- **Desktop (≥ 1024 px):** sticky phase banner; map with parties and selection details in the main column; Actions/Cards/Raid in a sticky right panel; Feed/Players/Trade/Chat under the map.
+- **Phones:** the phase banner stays pinned at the top; resources scroll horizontally; map labels and markers are enlarged; a fixed bottom tab bar opens each panel in a bottom sheet (with its own countdown) that leaves the top of the screen and the map visible. The game starts scrolled to the top. Explanations open on tap.
 
 ## Look and feel
 Theme tokens are in `tailwind.config.ts` (parchment, bark, moss, ember, royal, gold) and shared classes (`panel`, `btn-*`, `chip`, `input`) are in `styles/globals.css`. The map, castles, locations and icons are inline SVG and emoji, so nothing depends on remote images. Animations (pop, slide, pulse) are short and never block input.

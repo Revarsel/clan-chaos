@@ -1,9 +1,12 @@
 import {
+  COMMAND_PHASES,
+  PHASE_NAMES,
   RESOURCE_TYPES,
   fillResources,
   formatResources,
   totalResources,
   type CardId,
+  type FeedCategory,
   type GameCommand,
   type RaidTarget,
   type Resources,
@@ -21,6 +24,7 @@ import {
   pay,
   removeFromHand,
   removeResource,
+  resourceDelta,
   rivalsOf,
   takeFromHand,
 } from "./helpers.js";
@@ -58,13 +62,28 @@ export function applyCommand(
     if (state.phase === "ended") fail("WRONG_PHASE", "The match is over");
     if (p.eliminated) fail("ELIMINATED", "Your clan has been eliminated; you are spectating");
     if (state.phase === "resolution") fail("WRONG_PHASE", "Orders are locked during Resolution");
-    const { processed: _processed, ...rest } = state;
+    requireCommandPhase(state, cmd.type);
+    // The log is append-only, so it is excluded from the (deep) snapshot and trimmed on rollback instead.
+    const { processed: _processed, log: _log, ...rest } = state;
     const snapshot = structuredClone(rest);
+    const lastLogEntry = state.log[state.log.length - 1];
     try {
+      const before = { ...p.resources };
+      const handBefore = new Set(p.hand.map((c) => c.uid));
       execute(state, p, cmd, now);
+      const entry = describeCommand(state, p, cmd, handBefore, now);
+      if (entry) {
+        log(state, now, entry.text, "private", [p.id], {
+          category: entry.category,
+          actors: entry.actors ?? [p.id],
+          delta: resourceDelta(before, p.resources),
+          why: entry.why,
+        });
+      }
     } catch (err) {
       // Roll back any partial mutation so a failed command never leaves state half-applied.
       restoreInPlace(state as unknown as Record<string, unknown>, snapshot as unknown as Record<string, unknown>);
+      while (state.log.length && state.log[state.log.length - 1] !== lastLogEntry) state.log.pop();
       throw err;
     }
     record = { ok: true };
@@ -84,7 +103,7 @@ const isPlainObject = (v: unknown): v is Record<string, unknown> =>
 
 /** Restores `target` to `snap` while keeping existing object/array identities stable. */
 function restoreInPlace(target: Record<string, unknown>, snap: Record<string, unknown>): void {
-  for (const k of Object.keys(target)) if (!(k in snap) && k !== "processed") delete target[k];
+  for (const k of Object.keys(target)) if (!(k in snap) && k !== "processed" && k !== "log") delete target[k];
   for (const [k, v] of Object.entries(snap)) {
     const cur = target[k];
     if (Array.isArray(cur) && Array.isArray(v)) {
@@ -98,9 +117,11 @@ function restoreInPlace(target: Record<string, unknown>, snap: Record<string, un
   }
 }
 
-function requirePhase(state: MatchState, ...phases: MatchState["phase"][]): void {
+/** Enforces the shared COMMAND_PHASES table (the client reads the same table to explain availability). */
+function requireCommandPhase(state: MatchState, type: GameCommand["type"]): void {
+  const phases = COMMAND_PHASES[type];
   if (!phases.includes(state.phase)) {
-    fail("WRONG_PHASE", `Only allowed during ${phases.map((x) => (x === "build" ? "Build" : "Scheme")).join(" or ")}`);
+    fail("WRONG_PHASE", `Only allowed during ${phases.map((x) => PHASE_NAMES[x]).join(" or ")}`);
   }
 }
 
@@ -132,15 +153,12 @@ function execute(state: MatchState, p: PlayerState, cmd: GameCommand, now: numbe
   const cfg = state.config;
   switch (cmd.type) {
     case "gather":
-      requirePhase(state, "build", "scheme");
       startGather(state, p, cmd.partyId, cmd.locationId, now);
       return;
     case "recall":
-      requirePhase(state, "build", "scheme");
       recallParty(state, p, cmd.partyId, now);
       return;
     case "buildBarricade":
-      requirePhase(state, "build", "scheme");
       if (p.barricadeDefense + ACTION_VALUES.barricadeDefense > cfg.maxBarricadeDefense) {
         fail("LIMIT", `Barricades are capped at +${cfg.maxBarricadeDefense} defense`);
       }
@@ -148,20 +166,17 @@ function execute(state: MatchState, p: PlayerState, cmd: GameCommand, now: numbe
       p.barricadeDefense += ACTION_VALUES.barricadeDefense;
       return;
     case "repairFort":
-      requirePhase(state, "build", "scheme");
       if (p.fortDefense >= p.fortLevel) fail("LIMIT", "Your fort is already fully repaired");
       pay(p, COSTS.repairFort);
       p.fortDefense = Math.min(p.fortLevel, cfg.fortMax, p.fortDefense + ACTION_VALUES.repairAmount);
       return;
     case "clanGrowth":
-      requirePhase(state, "build", "scheme");
       if (p.fortLevel >= cfg.fortMax) fail("LIMIT", `Fort level is already at the maximum of ${cfg.fortMax}`);
       pay(p, COSTS.clanGrowth);
       p.fortLevel += ACTION_VALUES.growthAmount;
       p.fortDefense = Math.min(p.fortLevel, p.fortDefense + ACTION_VALUES.growthAmount);
       return;
     case "recruitMercenaries":
-      requirePhase(state, "build", "scheme");
       if (p.mercenaryBonus + ACTION_VALUES.mercenaryBonus > cfg.maxMercenaryBonus) {
         fail("LIMIT", `Mercenary bonus is capped at +${cfg.maxMercenaryBonus}`);
       }
@@ -169,7 +184,6 @@ function execute(state: MatchState, p: PlayerState, cmd: GameCommand, now: numbe
       p.mercenaryBonus += ACTION_VALUES.mercenaryBonus;
       return;
     case "buyCard": {
-      requirePhase(state, "build", "scheme");
       if (p.hand.length >= cfg.maxHandSize) fail("LIMIT", `Hand is full (${cfg.maxHandSize} cards)`);
       if (state.deck.length === 0 && state.discard.length === 0) fail("LIMIT", "The deck is empty");
       pay(p, { gold: cardBuyCost(state, p) });
@@ -178,7 +192,6 @@ function execute(state: MatchState, p: PlayerState, cmd: GameCommand, now: numbe
       return;
     }
     case "buyMerchantCard": {
-      requirePhase(state, "build", "scheme");
       if (state.activeEvent?.id !== "wandering_merchant" || !state.merchantCard) fail("INVALID", "No merchant card is for sale");
       if (p.hand.length >= cfg.maxHandSize) fail("LIMIT", "Your hand is full");
       pay(p, COSTS.merchantCard);
@@ -188,7 +201,6 @@ function execute(state: MatchState, p: PlayerState, cmd: GameCommand, now: numbe
       return;
     }
     case "trainParty": {
-      requirePhase(state, "build", "scheme");
       const count = Object.values(state.parties).filter((x) => x.ownerId === p.id).length;
       if (count >= cfg.maxParties) fail("LIMIT", `You already have ${cfg.maxParties} parties`);
       pay(p, COSTS.trainParty);
@@ -196,7 +208,6 @@ function execute(state: MatchState, p: PlayerState, cmd: GameCommand, now: numbe
       return;
     }
     case "scout": {
-      requirePhase(state, "build", "scheme");
       const t = rival(state, p, cmd.targetPlayerId);
       if (p.scoutedThisRound.includes(t.id)) fail("LIMIT", "You already scouted that clan this round");
       pay(p, COSTS.scout);
@@ -225,21 +236,20 @@ function execute(state: MatchState, p: PlayerState, cmd: GameCommand, now: numbe
       return;
     }
     case "playCard":
-      requirePhase(state, "build", "scheme");
       playInstant(state, p, cmd, now);
       return;
     case "commitDefense": {
-      requirePhase(state, "build", "scheme");
       const card = takeFromHand(p, cmd.cardUid);
       const def = CARDS[card.cardId];
       if (def.timing !== "defense") fail("INVALID", `${def.name} is not a defensive card`);
-      if (p.defenseCards.length >= cfg.maxDefenseCardsPerRound) {
+      if (p.defenseCommitsThisRound.length >= cfg.maxDefenseCardsPerRound) {
         fail("LIMIT", `At most ${cfg.maxDefenseCardsPerRound} defense cards per round`);
       }
-      if (p.defenseCards.some((c) => c.cardId === card.cardId)) fail("LIMIT", `${def.name} is already committed`);
+      if (p.defenseCommitsThisRound.includes(card.cardId)) fail("LIMIT", `${def.name} is already committed this round`);
       pay(p, def.cost);
       removeFromHand(p, card.uid);
       state.stats.cardsPlayed += 1;
+      p.defenseCommitsThisRound.push(card.cardId);
       if (card.cardId === "last_minute_reinforcements") {
         p.reinforcementDefense += def.params.defense ?? 0;
         state.discard.push(card);
@@ -249,7 +259,6 @@ function execute(state: MatchState, p: PlayerState, cmd: GameCommand, now: numbe
       return;
     }
     case "commitRaid": {
-      requirePhase(state, "scheme");
       if (state.raids[p.id]) fail("LIMIT", "You have already committed a raid this round");
       const primary = cmd.primaryCardUid ? takeFromHand(p, cmd.primaryCardUid) : null;
       const support = cmd.supportCardUid ? takeFromHand(p, cmd.supportCardUid) : null;
@@ -292,7 +301,6 @@ function execute(state: MatchState, p: PlayerState, cmd: GameCommand, now: numbe
       return;
     }
     case "foxfireRetarget": {
-      requirePhase(state, "scheme");
       if (p.clan !== "foxfire") fail("INVALID", "Only the Foxfire Bandits can do that");
       if (p.abilityUsed) fail("LIMIT", "Change of Heart has already been used this match");
       const raid = state.raids[p.id];
@@ -305,11 +313,9 @@ function execute(state: MatchState, p: PlayerState, cmd: GameCommand, now: numbe
       }
       raid.target = cmd.target;
       p.abilityUsed = true;
-      log(state, now, "Change of Heart: your raid has a new target.", "private", [p.id]);
       return;
     }
     case "useClanAbility": {
-      requirePhase(state, "build", "scheme");
       if (CLANS[p.clan].abilityKind !== "active" || p.clan !== "rats") {
         fail("INVALID", p.clan === "foxfire" ? "Use Change of Heart from the raid planner" : "Your clan ability is passive");
       }
@@ -323,14 +329,18 @@ function execute(state: MatchState, p: PlayerState, cmd: GameCommand, now: numbe
           removeResource(t, "gold", take);
           addResource(state, p, "gold", take);
           total += take;
-          log(state, now, `The Rats of the Racket collected ${take} gold of "protection money" from you.`, "private", [t.id]);
+          log(state, now, `${p.name} (Rats of the Racket) collected ${take} gold of "protection money" from you.`, "private", [t.id], {
+            category: "event",
+            actors: [p.id, t.id],
+            delta: { gold: -take },
+            why: "Protection Money takes 2 gold from every rival holding at least 5 gold.",
+          });
         }
       }
-      log(state, now, `${p.name} called in Protection Money and collected ${total} gold!`, "event");
+      log(state, now, `${p.name} called in Protection Money and collected ${total} gold!`, "event", null, { category: "event", actors: [p.id] });
       return;
     }
     case "tradeOffer": {
-      requirePhase(state, "build", "scheme");
       const to = rival(state, p, cmd.toPlayerId);
       if (p.tradesOfferedThisRound >= cfg.maxTradeOffersPerRound) {
         fail("LIMIT", `At most ${cfg.maxTradeOffersPerRound} trade offers per round`);
@@ -354,7 +364,6 @@ function execute(state: MatchState, p: PlayerState, cmd: GameCommand, now: numbe
       return;
     }
     case "tradeRespond": {
-      requirePhase(state, "build", "scheme");
       const offer = state.trades.find((t) => t.id === cmd.offerId);
       if (!offer || offer.toId !== p.id) return fail("NOT_FOUND", "Trade offer not found");
       if (offer.status !== "open") fail("INVALID", `That offer is ${offer.status}`);
@@ -380,7 +389,20 @@ function execute(state: MatchState, p: PlayerState, cmd: GameCommand, now: numbe
       }
       offer.status = "accepted";
       state.stats.tradesCompleted += 1;
-      log(state, now, `Trade completed between ${from.name} and ${p.name}.`, "trade", [from.id, p.id]);
+      const net = (plus: Resources, minus: Resources): Partial<Resources> =>
+        Object.fromEntries(RESOURCE_TYPES.filter((t) => plus[t] - minus[t] !== 0).map((t) => [t, plus[t] - minus[t]]));
+      log(state, now, `Trade with ${p.name} completed: you gave ${formatResources(give)} and received ${formatResources(want)}.`, "trade", [from.id], {
+        category: "trade",
+        actors: [from.id, p.id],
+        delta: net(want, give),
+        why: "Trades are final once accepted.",
+      });
+      log(state, now, `You accepted ${from.name}'s trade: you gave ${formatResources(want)} and received ${formatResources(give)}.`, "trade", [p.id], {
+        category: "trade",
+        actors: [from.id, p.id],
+        delta: net(give, want),
+        why: "Trades are final once accepted.",
+      });
       return;
     }
     case "tradeCancel": {
@@ -391,7 +413,6 @@ function execute(state: MatchState, p: PlayerState, cmd: GameCommand, now: numbe
       return;
     }
     case "marketExchange": {
-      requirePhase(state, "build", "scheme");
       if (cmd.give === cmd.get) fail("INVALID", "Pick two different resources");
       const rate = p.effects.merchantUntil >= state.round ? cfg.marketRateWithCaravan : cfg.marketRate;
       const cost = cmd.amount * rate;
@@ -401,7 +422,6 @@ function execute(state: MatchState, p: PlayerState, cmd: GameCommand, now: numbe
       return;
     }
     case "truceRespond": {
-      requirePhase(state, "build", "scheme");
       const offer = state.truceOffers.find((o) => o.toId === p.id);
       if (!offer) return fail("NOT_FOUND", "No truce has been offered to you");
       state.truceOffers = state.truceOffers.filter((o) => o !== offer);
@@ -512,5 +532,115 @@ function playInstant(state: MatchState, p: PlayerState, cmd: PlayCmd, now: numbe
       break;
     default:
       fail("INVALID", `${def.name} cannot be played this way`);
+  }
+}
+
+interface CommandDescription {
+  text: string;
+  category: FeedCategory;
+  actors?: string[];
+  why?: string;
+}
+
+const secs = (ms: number) => `${Math.max(1, Math.round(ms / 1000))}s`;
+
+/** Private, factual feed text for the acting player's own successful command. */
+function describeCommand(
+  state: MatchState,
+  p: PlayerState,
+  cmd: GameCommand,
+  handBefore: Set<string>,
+  now: number,
+): CommandDescription | null {
+  const name = (id: string) => state.players[id]?.name ?? "?";
+  switch (cmd.type) {
+    case "gather": {
+      const party = state.parties[cmd.partyId];
+      const loc = getLocation(cmd.locationId);
+      if (!party || !loc) return null;
+      return {
+        text: `You sent a party to ${loc.name}. It arrives in ${secs(party.arriveAt - now)}, gathers for ${secs(loc.gatherMs)}, then walks home.`,
+        category: "gather",
+        why: `A party carries at most ${state.config.partyCapacity} units per trip.`,
+      };
+    }
+    case "recall": {
+      const party = state.parties[cmd.partyId];
+      if (!party) return null;
+      return {
+        text: party.load > 0 ? `You recalled a party; it is bringing back ${party.load} ${party.resource}.` : "You recalled a party; it returns empty-handed.",
+        category: "gather",
+        why: "A recalled party keeps only what it gathered before leaving.",
+      };
+    }
+    case "buildBarricade":
+      return { text: `You built a barricade: +${p.barricadeDefense} defense until the next raid on your stronghold.`, category: "build" };
+    case "repairFort":
+      return { text: `You repaired your fort: defense ${p.fortDefense}/${p.fortLevel}.`, category: "build" };
+    case "clanGrowth":
+      return { text: `Clan growth: fort level ${p.fortLevel}, defense ${p.fortDefense}.`, category: "build" };
+    case "recruitMercenaries":
+      return { text: `You recruited mercenaries: your next raid gets +${p.mercenaryBonus} attack.`, category: "build" };
+    case "trainParty":
+      return {
+        text: `You trained a new gathering party (${Object.values(state.parties).filter((x) => x.ownerId === p.id).length}/${state.config.maxParties}).`,
+        category: "build",
+      };
+    case "buyCard":
+    case "buyMerchantCard": {
+      const drawn = p.hand.filter((c) => !handBefore.has(c.uid)).map((c) => CARDS[c.cardId].name);
+      return {
+        text: drawn.length ? `You bought a card: ${drawn.join(", ")}.` : "You bought a card.",
+        category: "card",
+      };
+    }
+    case "marketExchange":
+      return { text: `Market exchange: ${cmd.amount} ${cmd.get} received.`, category: "trade" };
+    case "scout":
+      return { text: `You scouted ${name(cmd.targetPlayerId)}. The report is in your intel.`, category: "card", actors: [p.id, cmd.targetPlayerId] };
+    case "playCard": {
+      const played = state.discard[state.discard.length - 1];
+      const card = played ? CARDS[played.cardId] : null;
+      if (!card) return null;
+      const on = cmd.targetPlayerId && card.target === "player" ? ` on ${name(cmd.targetPlayerId)}` : cmd.locationId && card.target === "location" ? ` at ${getLocation(cmd.locationId)?.name}` : "";
+      return {
+        text: `You played ${card.name}${on}.`,
+        category: "card",
+        actors: card.target === "player" && cmd.targetPlayerId ? [p.id, cmd.targetPlayerId] : [p.id],
+        why: card.text,
+      };
+    }
+    case "commitDefense": {
+      const id = p.defenseCommitsThisRound[p.defenseCommitsThisRound.length - 1];
+      if (!id) return null;
+      return {
+        text: `You secretly committed ${CARDS[id].name}. Rivals see nothing until a raid hits you.`,
+        category: "card",
+        why: CARDS[id].text,
+      };
+    }
+    case "commitRaid": {
+      const raid = state.raids[p.id];
+      if (!raid) return null;
+      const target = raid.target.kind === "player" ? name(raid.target.playerId) : (getLocation(raid.target.locationId)?.name ?? "?");
+      const cards = [raid.primary, raid.support].filter((c) => c !== null).map((c) => CARDS[c!.cardId].name);
+      return {
+        text: `You submitted a secret raid on ${target}${cards.length ? ` with ${cards.join(" + ")}` : ""}. It is locked and resolves in Resolution.`,
+        category: "raid",
+        why: "Only you know the target until the reveal.",
+      };
+    }
+    case "foxfireRetarget": {
+      const raid = state.raids[p.id];
+      if (!raid) return null;
+      const target = raid.target.kind === "player" ? name(raid.target.playerId) : (getLocation(raid.target.locationId)?.name ?? "?");
+      return { text: `Change of Heart: your raid now targets ${target}.`, category: "raid" };
+    }
+    case "useClanAbility":
+      return { text: "You called in Protection Money.", category: "event" };
+    case "tradeCancel":
+      return { text: "You cancelled a trade offer.", category: "trade" };
+    default:
+      return null;
   }
 }

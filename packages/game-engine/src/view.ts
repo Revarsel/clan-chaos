@@ -60,6 +60,8 @@ function selfView(state: MatchState, p: PlayerState): SelfView {
         }
       : null,
     defenseCards: p.defenseCards.map((c) => ({ ...c })),
+    defenseCommitsThisRound: [...p.defenseCommitsThisRound],
+    maxDefenseCardsPerRound: state.config.maxDefenseCardsPerRound,
     cardsBoughtThisRound: p.cardsBoughtThisRound,
     tradesOfferedThisRound: p.tradesOfferedThisRound,
     abilityUsed: p.abilityUsed,
@@ -136,8 +138,19 @@ export function buildPlayerView(state: MatchState, viewerId: string, serverNow: 
     intel: [...(state.intel[viewerId] ?? [])].slice(-20),
     log: state.log
       .filter((e) => e.visibleTo === null || e.visibleTo.includes(viewerId))
-      .slice(-60)
-      .map((e) => ({ at: e.at, round: e.round, text: e.text, kind: e.kind })),
+      .slice(-200)
+      .map((e) => ({
+        at: e.at,
+        round: e.round,
+        text: e.text,
+        kind: e.kind,
+        category: e.category,
+        actors: e.actors,
+        // Deltas describe one player's private resources: only include them on entries for this viewer alone.
+        delta: e.visibleTo && e.visibleTo.length === 1 && e.visibleTo[0] === viewerId ? e.delta : undefined,
+        points: e.points,
+        why: e.why,
+      })),
     results: state.results,
   };
 }

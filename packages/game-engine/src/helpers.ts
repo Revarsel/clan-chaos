@@ -1,5 +1,5 @@
 import { RESOURCE_TYPES, totalResources, type ResourceType, type Resources } from "@clan-chaos/shared";
-import type { CommandRecord, LogEntry, MatchState, PlayerState } from "./state.js";
+import type { CommandRecord, LogEntry, LogExtra, MatchState, PlayerState } from "./state.js";
 import { shuffle } from "./rng.js";
 
 export class RuleError extends Error {
@@ -59,10 +59,24 @@ export function rivalsOf(state: MatchState, id: string): PlayerState[] {
   return state.seatOrder.map((pid) => state.players[pid] as PlayerState).filter((p) => p.id !== id && !p.eliminated);
 }
 
-export function award(state: MatchState, p: PlayerState, points: number, reason: string): void {
+export function award(state: MatchState, p: PlayerState, points: number, reason: string, at = state.phaseStartedAt): void {
   if (points === 0) return;
   p.score += points;
   p.scoreBreakdown.push({ round: state.round, points, reason });
+  // Scores are public, so the award is a public feed entry.
+  log(state, at, `${p.name} ${points > 0 ? "+" : ""}${points} point${Math.abs(points) === 1 ? "" : "s"}: ${reason}.`, "info", null, {
+    category: "score",
+    actors: [p.id],
+    points,
+    why: reason,
+  });
+}
+
+/** Resource difference after − before, omitting zero entries. */
+export function resourceDelta(before: Resources, after: Resources): Partial<Resources> {
+  const d: Partial<Resources> = {};
+  for (const t of RESOURCE_TYPES) if (after[t] !== before[t]) d[t] = after[t] - before[t];
+  return d;
 }
 
 export function log(
@@ -71,9 +85,10 @@ export function log(
   text: string,
   kind: LogEntry["kind"] = "info",
   visibleTo: string[] | null = null,
+  extra: LogExtra = {},
 ): void {
-  state.log.push({ at: now, round: state.round, text, kind, visibleTo });
-  if (state.log.length > 400) state.log.splice(0, state.log.length - 400);
+  state.log.push({ at: now, round: state.round, text, kind, visibleTo, ...extra });
+  if (state.log.length > 1500) state.log.splice(0, state.log.length - 1500);
 }
 
 /** Draws a card from the shared deck, reshuffling the discard pile when the draw pile is empty. */

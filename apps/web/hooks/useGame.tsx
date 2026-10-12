@@ -31,6 +31,8 @@ interface GameContextValue {
   leave: () => Promise<void>;
   emitAck: (event: AckEvent, payload: unknown) => Promise<Ack<Record<string, unknown>>>;
   send: (cmd: GameCommand, success?: string) => Promise<boolean>;
+  /** Like send, but resolves with the server's reason when rejected. Success is only reported after the ack. */
+  sendCommand: (cmd: GameCommand, success?: string) => Promise<{ ok: true } | { ok: false; message: string }>;
   toast: (kind: Toast["kind"], text: string) => void;
 }
 
@@ -74,7 +76,7 @@ export function GameProvider({ code, children }: { code: string; children: React
   const toast = useCallback((kind: Toast["kind"], text: string) => {
     const id = ++toastId.current;
     setToasts((t) => [...t.slice(-3), { id, kind, text }]);
-    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), kind === "error" ? 4000 : 2500);
+    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), kind === "error" ? 6000 : kind === "info" ? 4500 : 3000);
   }, []);
 
   const emitAck = useCallback(
@@ -188,21 +190,22 @@ export function GameProvider({ code, children }: { code: string; children: React
     setJoined(false);
   }, [code, emitAck]);
 
-  const send = useCallback(
-    async (command: GameCommand, success?: string) => {
+  const sendCommand = useCallback(
+    async (command: GameCommand, success?: string): Promise<{ ok: true } | { ok: false; message: string }> => {
       const commandId = newCommandId();
       // Retry once with the SAME command id: the server dedupes, so this can never double-apply.
       let ack = await emitAck("game:command", { commandId, command });
       if (!ack.ok && ack.code === "INTERNAL" && socket.connected) ack = await emitAck("game:command", { commandId, command });
       if (ack.ok) {
         if (success) toast("ok", success);
-        return true;
+        return { ok: true };
       }
       toast("error", ack.message);
-      return false;
+      return { ok: false, message: ack.message };
     },
     [emitAck, socket, toast],
   );
+  const send = useCallback(async (command: GameCommand, success?: string) => (await sendCommand(command, success)).ok, [sendCommand]);
 
   const value: GameContextValue = {
     code,
@@ -222,6 +225,7 @@ export function GameProvider({ code, children }: { code: string; children: React
     leave,
     emitAck: emitAck as GameContextValue["emitAck"],
     send,
+    sendCommand,
     toast,
   };
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

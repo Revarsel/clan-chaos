@@ -28,7 +28,7 @@ body {
     @apply font-display text-sm font-bold uppercase tracking-wider text-bark-700;
   }
   .btn {
-    @apply inline-flex select-none items-center justify-center gap-1 rounded-xl border-2 border-bark-800 px-3 py-1.5 font-display text-sm font-bold shadow-pop transition active:translate-y-0.5 active:shadow-none disabled:cursor-not-allowed disabled:opacity-45 disabled:active:translate-y-0;
+    @apply inline-flex select-none items-center justify-center gap-1 rounded-xl border-2 border-bark-800 px-3 py-1.5 font-display text-sm font-bold shadow-pop transition active:translate-y-0.5 active:shadow-none disabled:cursor-not-allowed disabled:opacity-45 disabled:active:translate-y-0 outline-none focus-visible:ring-4 focus-visible:ring-royal-400;
   }
   .btn-primary {
     @apply btn bg-gold-400 text-bark-900 hover:bg-gold-300;
@@ -47,5 +47,14 @@ body {
   }
   .chip {
     @apply inline-flex items-center gap-1 rounded-full border border-bark-700/40 bg-parchment-50 px-2 py-0.5 text-xs font-semibold;
+  }
+}
+
+@layer utilities {
+  .focus-ring {
+    @apply outline-none focus-visible:ring-4 focus-visible:ring-royal-400;
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
   }
 }

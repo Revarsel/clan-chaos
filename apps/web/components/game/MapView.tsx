@@ -8,9 +8,31 @@ interface Props {
   now: number;
   selectedLocation: string | null;
   selectedPlayer: string | null;
+  selectedParty: string | null;
   onSelectLocation: (id: string) => void;
   onSelectPlayer: (id: string) => void;
+  onSelectParty: (id: string) => void;
+  /** Enlarges labels and markers on small screens. */
+  labelScale?: number;
 }
+
+const RESOURCE_BADGE = { gold: "🪙", materials: "🪵", food: "🍖", mixed: "🎲" } as const;
+const STOCK_TEXT = { rich: "Rich", steady: "Steady", poor: "Low", empty: "Empty" } as const;
+
+/** Keyboard + screen-reader support for clickable SVG groups. */
+const interactive = (label: string, onActivate: () => void) => ({
+  role: "button",
+  tabIndex: 0,
+  "aria-label": label,
+  onClick: onActivate,
+  onKeyDown: (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onActivate();
+    }
+  },
+  className: "cursor-pointer outline-none [&:focus-visible>.focus-halo]:opacity-100",
+});
 
 function partyPos(p: PartyView, now: number) {
   if (p.status !== "traveling" && p.status !== "returning") return p.to;
@@ -176,44 +198,77 @@ function Castle({ color, fort, exposed }: { color: string; fort: number; exposed
   );
 }
 
-export function MapView({ view, now, selectedLocation, selectedPlayer, onSelectLocation, onSelectPlayer }: Props) {
+export function MapView({
+  view,
+  now,
+  selectedLocation,
+  selectedPlayer,
+  selectedParty,
+  onSelectLocation,
+  onSelectPlayer,
+  onSelectParty,
+  labelScale = 1,
+}: Props) {
   const players = new Map(view.players.map((p) => [p.id, p]));
   const locView = new Map(view.locations.map((l) => [l.id, l]));
   const stockColor = { rich: "#3bb273", steady: "#f2a541", poor: "#e4572e", empty: "#6b6b6b" };
+  const fs = 13 * labelScale;
+  const idleByOwner = new Map<string, number>();
+  for (const p of view.parties) if (p.status === "idle") idleByOwner.set(p.ownerId, (idleByOwner.get(p.ownerId) ?? 0) + 1);
+  const selParty = view.parties.find((p) => p.id === selectedParty);
   return (
     <svg
       viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
       className="h-full w-full touch-manipulation select-none"
-      role="img"
-      aria-label="Clan Chaos map"
+      role="group"
+      aria-label="Map. Locations and strongholds are buttons."
     >
       <Terrain />
+      {selParty && selParty.status !== "idle" && (
+        <line x1={selParty.from.x} y1={selParty.from.y} x2={selParty.to.x} y2={selParty.to.y} stroke="#6c56e6" strokeWidth="6" strokeDasharray="4 10" strokeLinecap="round" />
+      )}
       {MAP_LOCATIONS.map((loc) => {
         const lv = locView.get(loc.id);
         const selected = selectedLocation === loc.id;
+        const kindWord = loc.resource ? `${loc.resource === "mixed" ? "random resource" : loc.resource} site, ${loc.safe ? "safe" : "contested"}` : "market";
+        const stock = lv ? `, stock ${lv.exactStock ?? STOCK_TEXT[lv.stockLevel]}` : "";
+        const label = `${loc.resource ? RESOURCE_BADGE[loc.resource] + " " : "⛺ "}${loc.name}`;
+        const w = label.length * 7.4 * labelScale + 22;
         return (
           <g
             key={loc.id}
+            data-tour={`loc-${loc.id}`}
             transform={`translate(${loc.position.x} ${loc.position.y})`}
-            className="cursor-pointer"
-            onClick={() => onSelectLocation(loc.id)}
+            {...interactive(`${loc.name}: ${kindWord}${stock}`, () => onSelectLocation(loc.id))}
           >
+            <circle r="62" fill="transparent" />
+            <circle className="focus-halo" r="58" fill="none" stroke="#6c56e6" strokeWidth="5" opacity="0" />
             {selected && <circle r="56" fill="#fff" opacity="0.35" stroke="#6c56e6" strokeWidth="4" strokeDasharray="8 6" />}
             {!loc.safe && loc.resource && <circle r="48" fill="none" stroke="#f26a2e" strokeWidth="3" strokeDasharray="4 7" opacity="0.8" />}
             <g filter="url(#soft)">
               <LocationArt loc={loc} />
             </g>
-            <g transform="translate(0 46)">
-              <rect x={-loc.name.length * 3.9 - 10} y="-11" width={loc.name.length * 7.8 + 20} height="22" rx="11" fill="#fbf1dc" stroke="#3d2514" strokeWidth="2" />
-              <text textAnchor="middle" y="5" fontSize="13" fontWeight="800" fill="#3d2514">
-                {loc.name}
+            <g transform={`translate(0 ${40 + 6 * labelScale})`}>
+              <rect x={-w / 2} y={-11 * labelScale} width={w} height={22 * labelScale} rx={11 * labelScale} fill="#fbf1dc" stroke="#3d2514" strokeWidth="2" />
+              <text textAnchor="middle" y={5 * labelScale} fontSize={fs} fontWeight="800" fill="#3d2514">
+                {label}
               </text>
             </g>
+            {loc.resource && (
+              <g transform={`translate(${-40} -34)`}>
+                <title>{loc.safe ? "Safe site: cannot be ambushed" : "Contested site: parties here can be ambushed"}</title>
+                <circle r={11 * Math.min(labelScale, 1.4)} fill={loc.safe ? "#3bb273" : "#f26a2e"} stroke="#3d2514" strokeWidth="2" />
+                <text textAnchor="middle" y={4.5 * Math.min(labelScale, 1.4)} fontSize={12 * Math.min(labelScale, 1.4)}>
+                  {loc.safe ? "🛡" : "⚔"}
+                </text>
+              </g>
+            )}
             {lv && (
-              <g transform="translate(36 -30)">
-                <circle r="11" fill={stockColor[lv.stockLevel]} stroke="#3d2514" strokeWidth="2" />
-                <text textAnchor="middle" y="4" fontSize="10" fontWeight="800" fill="#fff">
-                  {lv.exactStock ?? (lv.stockLevel === "empty" ? "0" : lv.stockLevel[0]!.toUpperCase())}
+              <g transform="translate(40 -34)">
+                <title>{`Stock: ${lv.exactStock ?? STOCK_TEXT[lv.stockLevel]}`}</title>
+                <rect x={-22 * Math.min(labelScale, 1.4)} y={-10 * Math.min(labelScale, 1.4)} width={44 * Math.min(labelScale, 1.4)} height={20 * Math.min(labelScale, 1.4)} rx="8" fill={stockColor[lv.stockLevel]} stroke="#3d2514" strokeWidth="2" />
+                <text textAnchor="middle" y={4 * Math.min(labelScale, 1.4)} fontSize={11 * Math.min(labelScale, 1.4)} fontWeight="800" fill="#fff">
+                  {lv.exactStock ?? STOCK_TEXT[lv.stockLevel]}
                 </text>
               </g>
             )}
@@ -223,30 +278,47 @@ export function MapView({ view, now, selectedLocation, selectedPlayer, onSelectL
       {view.players.map((p) => {
         const pos = STRONGHOLD_SLOTS[p.seat]!;
         const selected = selectedPlayer === p.id;
+        const you = p.id === view.youId;
+        const idle = idleByOwner.get(p.id) ?? 0;
         return (
           <g
             key={p.id}
+            data-tour={you ? "my-castle" : `castle-${p.id}`}
             transform={`translate(${pos.x} ${pos.y})`}
-            className="cursor-pointer"
-            onClick={() => onSelectPlayer(p.id)}
             opacity={p.eliminated ? 0.45 : 1}
+            {...interactive(
+              `${you ? "Your stronghold" : `${p.name}'s stronghold`}: fort ${p.fortDefense}${p.hasBarricade ? ", barricaded" : ""}${p.eliminated ? ", eliminated" : ""}`,
+              () => onSelectPlayer(p.id),
+            )}
           >
+            <circle r="64" fill="transparent" />
+            <circle className="focus-halo" r="60" fill="none" stroke="#6c56e6" strokeWidth="5" opacity="0" />
             {selected && <circle r="58" fill="#fff" opacity="0.3" stroke="#6c56e6" strokeWidth="4" strokeDasharray="8 6" />}
-            {p.id === view.youId && <circle r="50" fill={p.color} opacity="0.25" />}
+            {you && <circle r="50" fill={p.color} opacity="0.3" />}
             <Castle color={p.color} fort={p.fortDefense} exposed={p.fortDefense === 0} />
             {p.hasBarricade && (
-              <text x="-38" y="24" fontSize="18">
+              <text x="-40" y="24" fontSize="18">
                 🧱
               </text>
             )}
             <g transform="translate(0 -60)">
-              <text textAnchor="middle" fontSize="14" fontWeight="900" fill="#fff" stroke="#3d2514" strokeWidth="4" paintOrder="stroke">
-                {CLANS[p.clan].emblem} {p.name}
+              <text textAnchor="middle" fontSize={14 * Math.min(labelScale, 1.5)} fontWeight="900" fill="#fff" stroke="#3d2514" strokeWidth="4" paintOrder="stroke">
+                {you ? "★ YOU" : `${CLANS[p.clan].emblem} ${p.name}`}
                 {p.eliminated ? " ☠" : !p.connected ? " 💤" : ""}
               </text>
             </g>
+            {you && idle > 0 && (
+              <g transform="translate(-34 -26)">
+                <title>{`${idle} idle part${idle === 1 ? "y" : "ies"} at home`}</title>
+                <rect x="-22" y="-12" width="44" height="24" rx="12" fill="#fbf1dc" stroke="#3d2514" strokeWidth="2" />
+                <text textAnchor="middle" y="5" fontSize="13" fontWeight="800" fill="#3d2514">
+                  👣×{idle}
+                </text>
+              </g>
+            )}
             {p.hasCommittedRaid && view.phase === "scheme" && (
               <g transform="translate(34 -26)">
+                <title>Raid order submitted (target hidden)</title>
                 <circle r="12" fill="#f26a2e" stroke="#3d2514" strokeWidth="2" className="animate-pulse" />
                 <text textAnchor="middle" y="5" fontSize="13">
                   ⚔
@@ -262,21 +334,54 @@ export function MapView({ view, now, selectedLocation, selectedPlayer, onSelectL
           const owner = players.get(p.ownerId);
           const pos = partyPos(p, now);
           const mine = p.ownerId === view.youId;
+          const sel = p.id === selectedParty;
+          const r = 11 * Math.min(labelScale, 1.6);
+          const marker = (
+            <g transform={`translate(${pos.x + (mine ? -14 : 14)} ${pos.y - 20})`}>
+              {sel && <circle r={r + 8} fill="none" stroke="#6c56e6" strokeWidth="4" />}
+              {p.status === "intercepted" && <circle r={r + 7} fill="#f26a2e" opacity="0.5" className="animate-ping" />}
+              <circle r={r} fill={owner?.color ?? "#999"} stroke="#3d2514" strokeWidth="2.5" />
+              <text textAnchor="middle" y={r * 0.4} fontSize={r * 1.1}>
+                {p.status === "gathering" ? "⛏" : p.status === "returning" ? "🎒" : p.status === "intercepted" ? "💥" : "👣"}
+              </text>
+            </g>
+          );
           return (
             <g key={p.id}>
               {(p.status === "traveling" || p.status === "returning") && (
                 <line x1={p.from.x} y1={p.from.y} x2={p.to.x} y2={p.to.y} stroke={owner?.color} strokeWidth="2.5" strokeDasharray="6 8" opacity="0.6" />
               )}
-              <g transform={`translate(${pos.x + (mine ? -12 : 12)} ${pos.y - 18})`}>
-                {p.status === "intercepted" && <circle r="18" fill="#f26a2e" opacity="0.5" className="animate-ping" />}
-                <circle r="11" fill={owner?.color ?? "#999"} stroke="#3d2514" strokeWidth="2.5" />
-                <text textAnchor="middle" y="4.5" fontSize="12">
-                  {p.status === "gathering" ? "⛏" : p.status === "returning" ? "🎒" : p.status === "intercepted" ? "💥" : "👣"}
-                </text>
-              </g>
+              {mine ? <g {...interactive(`Your party: ${p.status}`, () => onSelectParty(p.id))}><circle cx={pos.x - 14} cy={pos.y - 20} r={r + 10} fill="transparent" />{marker}</g> : marker}
             </g>
           );
         })}
     </svg>
+  );
+}
+
+/** Explains the map symbols. */
+export function MapLegend() {
+  const items: [string, string][] = [
+    ["🛡", "Safe site: can't be ambushed"],
+    ["⚔", "Contested site: more yield, ambush risk"],
+    ["Rich / Steady / Low", "Stock left at a site"],
+    ["👣 🎒 ⛏", "Party walking / returning / gathering"],
+    ["💥", "Party ambushed"],
+    ["★ YOU", "Your stronghold"],
+    ["🛡5", "Fort defense"],
+    ["🧱", "Has a barricade (size secret)"],
+    ["⚔ on a castle", "Raid order submitted (target secret)"],
+  ];
+  return (
+    <details className="rounded-xl border border-bark-700/30 bg-parchment-50 px-2 py-1 text-xs">
+      <summary className="focus-ring cursor-pointer font-bold">Map legend</summary>
+      <ul className="mt-1 grid gap-0.5 sm:grid-cols-2">
+        {items.map(([k, v]) => (
+          <li key={k}>
+            <b>{k}</b> — {v}
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }

@@ -1,7 +1,9 @@
 import type {
+  CardId,
   CardInstance,
   ClanId,
   EventId,
+  FeedCategory,
   IntelView,
   MatchResultsView,
   PartyStatus,
@@ -43,6 +45,8 @@ export interface PlayerState {
   reinforcementDefense: number;
   hand: CardInstance[];
   defenseCards: CardInstance[];
+  /** Every defense card committed this round, including Last-Minute Reinforcements (which is not kept in defenseCards). */
+  defenseCommitsThisRound: CardId[];
   /** Booby Trap instances already triggered this round. */
   usedDefenseUids: string[];
   score: number;
@@ -107,7 +111,15 @@ export interface ActiveEvent {
   claimed: Record<string, boolean>;
 }
 
-export interface LogEntry {
+export interface LogExtra {
+  category?: FeedCategory;
+  actors?: string[];
+  delta?: Partial<Resources>;
+  points?: number;
+  why?: string;
+}
+
+export interface LogEntry extends LogExtra {
   at: number;
   round: number;
   text: string;

@@ -3,6 +3,7 @@ import type {
   CardInstance,
   ClanId,
   EventId,
+  FeedCategory,
   PartyStatus,
   Phase,
   RaidTarget,
@@ -72,6 +73,9 @@ export interface SelfView {
   maxHandSize: number;
   raid: OwnRaidView | null;
   defenseCards: CardInstance[];
+  /** Defense cards committed this round (including Last-Minute Reinforcements); max is maxDefenseCardsPerRound. */
+  defenseCommitsThisRound: CardId[];
+  maxDefenseCardsPerRound: number;
   cardsBoughtThisRound: number;
   tradesOfferedThisRound: number;
   abilityUsed: boolean;
@@ -166,6 +170,15 @@ export interface LogView {
   round: number;
   text: string;
   kind: "info" | "raid" | "event" | "trade" | "private";
+  /** Feed grouping. */
+  category?: FeedCategory;
+  /** Player ids involved (public information only). */
+  actors?: string[];
+  /** Resource change for the viewer. Only present on entries visible to that player alone. */
+  delta?: Partial<Resources>;
+  points?: number;
+  /** Why the result happened, when relevant. */
+  why?: string;
 }
 
 export interface FinalStanding {

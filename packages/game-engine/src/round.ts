@@ -39,7 +39,7 @@ export function advancePhase(state: MatchState, at: number): void {
     state.phase = "scheme";
     state.phaseStartedAt = at;
     state.phaseEndsAt = at + c.schemeMs;
-    log(state, at, `Round ${state.round}: Scheme and Commit. Lock in your raids!`, "event");
+    log(state, at, `Round ${state.round}: Scheme & Commit began. Submit raids before the timer ends.`, "event", null, { category: "phase" });
   } else if (state.phase === "scheme") {
     state.phase = "resolution";
     state.phaseStartedAt = at;
@@ -56,7 +56,7 @@ function announceEvent(state: MatchState, at: number): void {
   const id = state.eventQueue.shift();
   if (!id) return;
   state.pendingEvent = id;
-  log(state, at, `Coming next round: ${EVENTS[id].name}! ${EVENTS[id].description}`, "event");
+  log(state, at, `Coming next round: ${EVENTS[id].name}! ${EVENTS[id].description}`, "event", null, { category: "event" });
 }
 
 function activatePendingEvent(state: MatchState, at: number): void {
@@ -73,16 +73,20 @@ function activatePendingEvent(state: MatchState, at: number): void {
     claimed: {},
   };
   state.merchantCard = null;
-  log(state, at, `Event: ${EVENTS[id].name} is now active!`, "event");
+  log(state, at, `Event: ${EVENTS[id].name} is now active!`, "event", null, { category: "event", why: EVENTS[id].description });
   if (id === "fort_inspection") {
     for (const p of players) {
-      if (p.fortDefense >= state.config.fortMax) award(state, p, EVENTS.fort_inspection.points, "Fort Inspection passed");
+      if (p.fortDefense >= state.config.fortMax) award(state, p, EVENTS.fort_inspection.points, "Fort Inspection passed", at);
     }
   } else if (id === "goblin_tax") {
     for (const p of players) {
       if (p.resources.gold > 15) {
         removeResource(p, "gold", 2);
-        log(state, at, "The goblins collected 2 gold in tax from you.", "private", [p.id]);
+        log(state, at, "Goblin Tax: the goblins collected 2 gold from you.", "private", [p.id], {
+          category: "event",
+          delta: { gold: -2 },
+          why: "Clans holding more than 15 gold pay 2 gold.",
+        });
       }
     }
   } else if (id === "wandering_merchant") {
@@ -101,13 +105,23 @@ function activatePendingEvent(state: MatchState, at: number): void {
 function applyUpkeep(state: MatchState, p: PlayerState, at: number): void {
   if (p.effects.skipUpkeep) {
     p.effects.skipUpkeep = false;
-    log(state, at, "Emergency Rations covered this round's upkeep.", "private", [p.id]);
+    log(state, at, "Emergency Rations covered this round's upkeep.", "private", [p.id], { category: "upkeep" });
     return;
   }
-  if (removeResource(p, "food", ACTION_VALUES.upkeepFood) === 0) {
-    if (removeResource(p, "gold", ACTION_VALUES.upkeepGoldFallback) > 0) {
-      log(state, at, "No food for upkeep: you paid 1 gold instead.", "private", [p.id]);
-    }
+  if (removeResource(p, "food", ACTION_VALUES.upkeepFood) > 0) {
+    log(state, at, `Upkeep: you paid ${ACTION_VALUES.upkeepFood} food.`, "private", [p.id], {
+      category: "upkeep",
+      delta: { food: -ACTION_VALUES.upkeepFood },
+      why: "Every clan pays 1 food at the end of each round.",
+    });
+  } else if (removeResource(p, "gold", ACTION_VALUES.upkeepGoldFallback) > 0) {
+    log(state, at, "No food for upkeep: you paid 1 gold instead.", "private", [p.id], {
+      category: "upkeep",
+      delta: { gold: -ACTION_VALUES.upkeepGoldFallback },
+      why: "Without food, upkeep costs 1 gold.",
+    });
+  } else {
+    log(state, at, "No food or gold for upkeep this round (no further penalty).", "private", [p.id], { category: "upkeep" });
   }
 }
 
@@ -121,6 +135,7 @@ function endRound(state: MatchState, at: number): void {
     }
     for (const c of p.defenseCards) state.discard.push(c);
     p.defenseCards = [];
+    p.defenseCommitsThisRound = [];
     p.usedDefenseUids = [];
     p.cardsBoughtThisRound = 0;
     p.tradesOfferedThisRound = 0;
@@ -131,7 +146,7 @@ function endRound(state: MatchState, at: number): void {
     for (const pid of [t.a, t.b]) {
       const p = state.players[pid];
       if (p && !p.eliminated && !t.brokenBy.includes(pid)) {
-        award(state, p, CARDS.unstable_truce.params.points ?? 2, "Honoured an Unstable Truce");
+        award(state, p, CARDS.unstable_truce.params.points ?? 2, "Honoured an Unstable Truce", at);
       }
     }
   }
@@ -155,7 +170,7 @@ function endRound(state: MatchState, at: number): void {
   state.phaseStartedAt = at;
   state.phaseEndsAt = at + state.config.buildMs;
   activatePendingEvent(state, at);
-  log(state, at, `Round ${state.round} of ${state.config.totalRounds}: Build and Gather.`, "event");
+  log(state, at, `Round ${state.round} of ${state.config.totalRounds}: Build & Gather began.`, "event", null, { category: "phase" });
 }
 
 export function endMatch(state: MatchState, at: number, reason: "rounds_complete" | "last_clan_standing"): void {
@@ -168,10 +183,10 @@ export function endMatch(state: MatchState, at: number, reason: "rounds_complete
     }
   }
   for (const p of alive(state)) {
-    if (p.fortDefense > 0) award(state, p, SCORING.intactFort, "Fort still standing");
+    if (p.fortDefense > 0) award(state, p, SCORING.intactFort, "Fort still standing", at);
     for (const t of RESOURCE_TYPES) {
       const pts = Math.floor(p.resources[t] / SCORING.resourcesPerPoint);
-      if (pts > 0) award(state, p, pts, `${p.resources[t]} ${t} remaining`);
+      if (pts > 0) award(state, p, pts, `${p.resources[t]} ${t} remaining`, at);
     }
   }
   state.phase = "ended";

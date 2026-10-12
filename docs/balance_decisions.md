@@ -18,7 +18,7 @@ Values the spec did not define, chosen conservatively. All of them live in `pack
 | Storage overflow on delivery | Excess spoils | Keeps the 100 cap simple |
 | Ambushes | Defense = 1 per enemy party at the site; steal their partial loads; no penalty if the site is empty | Makes contested sites risky |
 | Stronghold-only cards | Sneaky Heist, Tunnel Rats, Battering Ram, Decoy Caravan can't be used on ambushes | Their effects need a fort |
-| Defense cards | Committed in Build or Scheme; maximum 2 per round; no duplicates | Limits defensive stacking |
+| Defense cards | Committed in Build or Scheme; maximum 2 per round; no duplicates; Last-Minute Reinforcements counts towards both (it previously bypassed them) | Limits defensive stacking |
 | Booby Trap | Applies to the first raid only; if that raid fails, +2 extra gold loss | "Against one raid" |
 | Reinforcements | +2 that stays until the next raid, even across rounds | "Next incoming raid" |
 | Counter-Ambush | −3 to raids with attack 6+, −1 to others; a raid that still succeeds steals half and deals no fort damage | "Reduce its associated penalty" |

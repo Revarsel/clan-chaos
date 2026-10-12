@@ -14,7 +14,7 @@
 | **Fort level** | Permanent maximum of your fort's defense (5 to 7). Clan growth raises it, repairs restore up to it |
 | **Idempotent** | Doing it twice has the same effect as doing it once |
 | **Inactive** | A clan that has been disconnected for 60 s. It keeps everything but takes no actions |
-| **Intel** | Private scouting information shown in the Intel tab |
+| **Intel** | Private scouting information, shown in the Feed panel and the raid planner |
 | **Load** | Resources a party is carrying home |
 | **Party** | A gathering group. Each clan starts with 2 (max 4) |
 | **PlayerView** | The server's per-player picture of the match. The only thing clients see |

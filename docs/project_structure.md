@@ -32,12 +32,14 @@ clan-chaos/
 │       │   ├── Logo.tsx, Toasts.tsx, ConnectionBadge.tsx
 │       │   └── game/            In-match UI (map, panels, overlays; see docs/frontend.md)
 │       ├── hooks/useGame.tsx    GameProvider: socket connection, session resume, state, command sending
-│       ├── lib/                 socket.ts (server URL), session.ts (localStorage), format.ts (labels/icons)
+│       ├── lib/                 socket/session/format, plus display logic: phaseInfo, availability, cardInfo,
+│       │                        resourceInfo, raidPlan, resolutionText, objective, feed (unit-tested)
 │       ├── styles/globals.css   Tailwind layers and shared component classes
 │       └── tailwind.config.ts   Custom theme (parchment, bark, moss, ember, royal, gold)
 ├── packages/
 │   ├── shared/src/              Contracts shared by client and server
 │   │   ├── types.ts             Core domain types and ID lists (resources, clans, cards, events, phases)
+│   │   ├── phases.ts            COMMAND_PHASES: which phases accept each command (enforced by the engine, read by the UI)
 │   │   ├── commands.ts          Zod schemas: gameplay commands, room/lobby payloads
 │   │   ├── views.ts             PlayerView: the per-player projection sent to clients
 │   │   ├── protocol.ts          Typed Socket.IO events, ack and error types, LobbyState
@@ -56,6 +58,7 @@ clan-chaos/
 │       ├── raids.ts             Raid ordering and resolution, card effects, theft, damage, scoring
 │       ├── round.ts             tick(), phase machine, upkeep, events, truces, match end, results, tie-breaks
 │       ├── view.ts              buildPlayerView(): the only place state is turned into client data
+│       ├── preview.ts           Pure raid-strength helpers shared by resolution and the client preview
 │       ├── helpers.ts           RuleError, payment, storage caps, drawing cards, scoring, logging
 │       └── rng.ts               Seeded deterministic random number generator
 ├── prisma/
@@ -82,15 +85,15 @@ clan-chaos/
 
 ```
 shared  ◀──  game-content  ◀──  game-engine  ◀──  apps/server
-   ▲               ▲
-   └───────────────┴────────────────────────────  apps/web
+   ▲               ▲               ▲ (pure preview helpers only)
+   └───────────────┴───────────────┴────────────  apps/web
 ```
 
 - `shared` depends on nothing but `zod`.
 - `game-content` depends on `shared`.
 - `game-engine` depends on `shared` and `game-content`. It never imports Node, React, Socket.IO, or Prisma.
 - `apps/server` depends on all three libraries plus Socket.IO and Prisma.
-- `apps/web` depends on `shared` and `game-content` only. It **does not** import the engine, so game rules can't leak into React components. It reads card, clan, and map data for display only.
+- `apps/web` depends on `shared` and `game-content`, and imports only **pure helper functions** from `game-engine` (raid preview, travel time) so previews use exactly the server's maths. It never creates or mutates match state; the server stays authoritative.
 
 ## Source-level conventions
 - Workspace packages are consumed as **TypeScript source** (`"main": "src/index.ts"`); there is no separate build step for them. Next.js compiles them via `transpilePackages`, the server runs them with `tsx`, and Vitest aliases them directly.

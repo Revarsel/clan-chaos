@@ -103,6 +103,22 @@ See `card_reference.md` for all card texts.
 | Victory points and tie-breakers | ✅ | Every point is recorded with a reason and shown on the results screen |
 | Final standings, winner, statistics, rematch | ✅ | |
 
+## Gameplay HUD and action flow
+| Feature | Status | Notes |
+|---|---|---|
+| Sticky phase banner: round x/8, phase, purpose sentence, countdown, next deadline, what can still be submitted | ✅ | From the server's phase and deadline only; "What can I do?" lists come from `COMMAND_PHASES`, the table the engine enforces |
+| Immediate objective and optional suggestions | ✅ | Computed from the player's own state; buttons only navigate |
+| Resource HUD with cap, recent gain/loss, key costs, tap-to-explain (purpose, consumers, affordability, sources); fort with exposed warning | ✅ | No hover needed |
+| Map: icons, labels, resource type, safe/contested, stock level, idle parties at home, keyboard-accessible sites/castles/parties, legend | ✅ | Only public information is shown |
+| Parties strip and party panel (status, capacity, destination, dispatch/recall with consequences) | ✅ | |
+| "Why unavailable" reasons for actions, cards, trades, scouting and raid submission | ✅ | Advisory; the server still validates |
+| Guided raid planner: Draft → Submitted → Locked → Resolved, known vs hidden information, cost and failure penalty, confirmation, inline rejection reason | ✅ | Preview uses the same engine helper as resolution and only public data |
+| Card details: effect, cost, type, timing, target, when it applies, limits, counterplay, glossary | ✅ | Derived from the card definitions |
+| Action feed (gathering, trades, cards, raids, upkeep, events, points) with who/what changed/why | ✅ | Structured server log entries; private rows are only sent to their owner |
+| Resolution explanation with personal summary | ✅ | Revealed only after orders lock |
+| Responsive layout: desktop map-centred; phones with pinned banner, bottom tab bar and bottom sheets | ✅ | Verified at 390×664 and 1440×900 |
+| Guided onboarding / practice tutorial | ❌ | Started, then paused at your request; only the shared groundwork exists |
+
 ## Protocol, security, persistence
 | Feature | Status | Notes |
 |---|---|---|
@@ -116,7 +132,7 @@ See `card_reference.md` for all card texts.
 ## Quality
 | Feature | Status | Notes |
 |---|---|---|
-| Unit, integration and simulation tests | ✅ | 112 tests; see `testing.md` |
+| Unit, integration and simulation tests | ✅ | 132 tests; see `testing.md` |
 | Lint, strict TypeScript, production build | ✅ | |
 | Browser end-to-end test in the repo | ❌ | A 3-player playthrough was run manually with Playwright during development, but the script is not part of the repository |
 | Physical-device testing | ❌ | |

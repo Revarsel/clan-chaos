@@ -5,3 +5,4 @@ dist
 *.log
 coverage
 apps/web/next-env.d.ts
+*.tsbuildinfo

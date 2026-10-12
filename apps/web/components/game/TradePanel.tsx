@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { RESOURCE_TYPES, formatResources, type PlayerView, type Resources } from "@clan-chaos/shared";
 import { DEFAULT_CONFIG } from "@clan-chaos/game-content";
 import { useGame } from "@/hooks/useGame";
+import { acceptTradeAvailability, costReason, phaseReason, tradeOfferAvailability } from "@/lib/availability";
+import { InfoTip } from "../ui/Popover";
 import { RESOURCE_ICON } from "@/lib/format";
 
 const zero = (): Resources => ({ gold: 0, materials: 0, food: 0 });
@@ -27,7 +29,7 @@ function Amounts({ value, onChange }: { value: Resources; onChange: (r: Resource
   );
 }
 
-export function TradePanel({ view, partner }: { view: PlayerView; partner: string | null }) {
+export function TradePanel({ view, partner, now }: { view: PlayerView; partner: string | null; now: number }) {
   const { send } = useGame();
   const rivals = view.players.filter((p) => p.id !== view.youId && !p.eliminated);
   const [to, setTo] = useState(partner ?? rivals[0]?.id ?? "");
@@ -37,13 +39,26 @@ export function TradePanel({ view, partner }: { view: PlayerView; partner: strin
     if (partner) setTo(partner);
   }, [partner]);
   const canAct = view.phase === "build" || view.phase === "scheme";
+  const offerAvail = tradeOfferAvailability(view, now);
+  const respondBlock = phaseReason(view, "tradeRespond", now);
+  const offerCost = costReason(view.self!.resources, give);
   const name = (id: string) => view.players.find((p) => p.id === id)?.name ?? "?";
   const self = view.self!;
   const left = DEFAULT_CONFIG.maxTradeOffersPerRound - self.tradesOfferedThisRound;
   const strip = (r: Resources) => Object.fromEntries(Object.entries(r).filter(([, n]) => n > 0));
 
   return (
-    <div className="space-y-3 text-sm">
+    <div className="space-y-3 text-sm" data-testid="trade">
+      <div className="flex items-start gap-2 rounded-xl bg-royal-400/10 p-2 text-xs">
+        <p className="flex-1">
+          Trades move resources between two clans and are <b>final once accepted</b>. Alliances and promises made in chat are informal: nothing stops a
+          trade partner from raiding you later. Open offers expire at the end of the round.
+        </p>
+        <InfoTip title="Trading & alliances">
+          <p>Send up to {DEFAULT_CONFIG.maxTradeOffersPerRound} offers per round. The server checks both sides can pay at the moment of acceptance.</p>
+          <p>Only the two clans involved see an offer.</p>
+        </InfoTip>
+      </div>
       {view.truceOffer && (
         <div className="animate-pop rounded-xl border-2 border-royal-500 bg-royal-400/15 p-2">
           🤝 <b>{name(view.truceOffer.fromId)}</b> offers an Unstable Truce (this round and next; +2 points each if honoured).
@@ -64,7 +79,7 @@ export function TradePanel({ view, partner }: { view: PlayerView; partner: strin
       )}
       <div className="rounded-xl border-2 border-bark-700/40 bg-parchment-50 p-2.5">
         <div className="panel-title mb-1">New offer ({left} left this round)</div>
-        <select className="input mb-2 py-1" value={to} onChange={(e) => setTo(e.target.value)}>
+        <select className="input mb-2 py-1" aria-label="Trade partner" value={to} onChange={(e) => setTo(e.target.value)}>
           {rivals.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}
@@ -77,9 +92,9 @@ export function TradePanel({ view, partner }: { view: PlayerView; partner: strin
         <Amounts value={want} onChange={setWant} />
         <button
           className="btn-primary mt-2 w-full"
-          disabled={!canAct || !to || left <= 0}
+          disabled={!offerAvail.ok || !to || !!offerCost || (Object.keys(strip(give)).length + Object.keys(strip(want)).length === 0)}
           onClick={async () => {
-            if (await send({ type: "tradeOffer", toPlayerId: to, give: strip(give), want: strip(want) }, "Offer sent")) {
+            if (await send({ type: "tradeOffer", toPlayerId: to, give: strip(give), want: strip(want) }, `Offer sent to ${name(to)}. Nothing moves until they accept.`)) {
               setGive(zero());
               setWant(zero());
             }
@@ -87,6 +102,8 @@ export function TradePanel({ view, partner }: { view: PlayerView; partner: strin
         >
           Send offer
         </button>
+        {!offerAvail.ok && <p className="mt-1 text-[11px] font-semibold text-ember-600">{offerAvail.reason}</p>}
+        {offerAvail.ok && offerCost && <p className="mt-1 text-[11px] font-semibold text-ember-600">You can't offer that: {offerCost.toLowerCase()}</p>}
       </div>
       <div>
         <div className="panel-title mb-1">Offers</div>
@@ -106,18 +123,24 @@ export function TradePanel({ view, partner }: { view: PlayerView; partner: strin
                   </>
                 )}
                 <span className="ml-1 chip">{t.status}</span>
-                {t.status === "open" && incoming && (
-                  <span className="ml-1 inline-flex gap-1">
-                    <button className="btn-green px-2 py-0 text-xs" disabled={!canAct} onClick={() => send({ type: "tradeRespond", offerId: t.id, accept: true }, "Trade complete")}>
-                      Accept
-                    </button>
-                    <button className="btn-plain px-2 py-0 text-xs" disabled={!canAct} onClick={() => send({ type: "tradeRespond", offerId: t.id, accept: false })}>
-                      Reject
-                    </button>
-                  </span>
-                )}
+                {t.status === "open" && incoming && (() => {
+                  const acc = acceptTradeAvailability(view, t.want, t.give, now);
+                  return (
+                    <>
+                      <span className="ml-1 inline-flex gap-1">
+                        <button className="btn-green px-2 py-0 text-xs" disabled={!acc.ok} onClick={() => send({ type: "tradeRespond", offerId: t.id, accept: true }, `Trade accepted: you received ${formatResources(t.give)} and paid ${formatResources(t.want)}.`)}>
+                          Accept
+                        </button>
+                        <button className="btn-plain px-2 py-0 text-xs" disabled={!!respondBlock} onClick={() => send({ type: "tradeRespond", offerId: t.id, accept: false }, "Offer rejected.")}>
+                          Reject
+                        </button>
+                      </span>
+                      {!acc.ok && <p className="mt-0.5 text-[11px] font-semibold text-ember-600">{acc.reason}</p>}
+                    </>
+                  );
+                })()}
                 {t.status === "open" && !incoming && (
-                  <button className="btn-plain ml-1 px-2 py-0 text-xs" onClick={() => send({ type: "tradeCancel", offerId: t.id })}>
+                  <button className="btn-plain ml-1 px-2 py-0 text-xs" disabled={!canAct} onClick={() => send({ type: "tradeCancel", offerId: t.id }, "Offer cancelled.")}>
                     Cancel
                   </button>
                 )}

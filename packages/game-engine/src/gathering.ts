@@ -1,13 +1,18 @@
 import { RESOURCE_TYPES, type Point, type ResourceType } from "@clan-chaos/shared";
 import { CARDS, MAP_LOCATIONS, getLocation, type MapLocation } from "@clan-chaos/game-content";
 import type { MatchState, Party, PlayerState } from "./state.js";
-import { addResource, distance, fail, getPlayer, log } from "./helpers.js";
+import { addResource, distance, fail, getPlayer, log, resourceDelta } from "./helpers.js";
 import { randomInt } from "./rng.js";
 
 const INTERCEPT_PAUSE_MS = 2_000;
 
 export function travelMs(state: MatchState, from: Point, to: Point): number {
-  return Math.max(500, Math.round((distance(from, to) / state.config.partySpeed) * 1000));
+  return travelDurationMs(from, to, state.config.partySpeed);
+}
+
+/** One-way travel time for a party. Also used by the client to estimate trip length (display only). */
+export function travelDurationMs(from: Point, to: Point, speed: number): number {
+  return Math.max(500, Math.round((distance(from, to) / speed) * 1000));
 }
 
 export function partyPosition(party: Party, now: number): Point {
@@ -123,7 +128,10 @@ function arriveAtLocation(state: MatchState, party: Party, at: number): void {
   const loc = getLocation(party.locationId ?? "");
   const ls = loc ? state.locations[loc.id] : undefined;
   if (!loc || !ls || !isGatherable(loc) || ls.stock <= 0) {
-    log(state, at, `Your party found ${loc?.name ?? "the site"} empty and is heading home.`, "private", [owner.id]);
+    log(state, at, `Your party found ${loc?.name ?? "the site"} empty and is heading home.`, "private", [owner.id], {
+      category: "gather",
+      why: "Site stock regenerates slowly over time.",
+    });
     sendHome(state, party, party.to, at);
     return;
   }
@@ -142,15 +150,25 @@ function arriveAtLocation(state: MatchState, party: Party, at: number): void {
 function deliver(state: MatchState, party: Party, at: number): void {
   const owner = getPlayer(state, party.ownerId);
   if (party.load > 0 && party.resource) {
+    const before = { ...owner.resources };
     const stored = addResource(state, owner, party.resource, party.load);
-    let msg = `A party delivered ${stored} ${party.resource}.`;
-    if (stored < party.load) msg += ` ${party.load - stored} spoiled (storage full).`;
+    const from = getLocation(party.locationId ?? "")?.name;
+    let msg = `A party delivered ${stored} ${party.resource}${from ? ` from ${from}` : ""}.`;
+    let why: string | undefined;
+    if (stored < party.load) {
+      msg += ` ${party.load - stored} spoiled (storage full).`;
+      why = `Each resource is capped at ${state.config.storageCap}.`;
+    }
     if (party.resource === "gold" && stored > 0 && state.activeEvent?.id === "gold_rush" && !state.activeEvent.claimed[owner.id]) {
       state.activeEvent.claimed[owner.id] = true;
       const bonus = addResource(state, owner, "gold", 2);
       msg += ` Gold Rush bonus: +${bonus} gold!`;
     }
-    log(state, at, msg, "private", [owner.id]);
+    log(state, at, msg, "private", [owner.id], {
+      category: "gather",
+      delta: resourceDelta(before, owner.resources),
+      why,
+    });
   }
   party.status = "idle";
   party.locationId = null;

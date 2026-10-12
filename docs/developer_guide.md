@@ -42,7 +42,7 @@ Add the id to `EVENT_IDS` (shared) and a definition in `events.ts`. Implement ac
 Add it to `MAP_LOCATIONS` in `map.ts`. A new `LocationKind` also needs art in the `LocationArt` switch in `MapView.tsx`. Stock is initialised from the map data.
 
 ### Add a player command
-1. Add a Zod schema variant in `packages/shared/src/commands.ts`.
+1. Add a Zod schema variant in `packages/shared/src/commands.ts`, and list the phases that accept it in `COMMAND_PHASES` (`packages/shared/src/phases.ts`); TypeScript requires an entry. The engine enforces it and the UI uses it to explain availability.
 2. Add a `case` in `execute()` in `packages/game-engine/src/commands.ts`: check the phase, validate everything, then pay and apply. Throw `fail(code, message)` to reject.
 3. Call `send({ type: ... })` from a component.
 4. Test it, including a rejection that must leave state unchanged. Note that the `switch` has no exhaustiveness check, so make sure you add the case.

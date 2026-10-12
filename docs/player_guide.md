@@ -20,13 +20,15 @@ Finish with the most **victory points** after 8 rounds. Points come from success
 Gathering and building also work during Scheme. Once Resolution starts, orders are locked.
 
 ## Your screen
-- **Top:** round, phase and countdown. Below it your gold 🪙, materials 🪵, food 🍖, fort 🏰, and score ⭐.
-- **Map:** tap a location to send gathering parties, tap a stronghold to scout, trade or raid. Dashed orange circles mark contested sites. Small circles show stock (R = rich, S = steady, P = poor).
-- **Side panel tabs:** Build · Cards · Raid · Trade · Chat · Intel · Score.
+- **Top (always visible):** round, phase, what the phase is for, the countdown, and the next deadline. Tap **What can I do?** for the full list.
+- **Next:** your most important next step, then your gold 🪙, materials 🪵, food 🍖 (each out of 100), fort 🏰, mercenaries, points and clan ability. Tap any of them for an explanation.
+- **Map:** tap a site to send gathering parties, tap a stronghold to scout, trade or raid. 🛡 = safe site, ⚔ = contested. The label shows stock (Rich / Steady / Low). Your parties are listed under the map. Open **Map legend** for every symbol.
+- **Panels:** Actions · Cards · Raid · Feed · Players · Trade · Chat (bottom bar on phones).
 
 ## Doing things
-- **Gather:** tap a site, then **Send here** on an idle party. It walks there, works for 8–15 seconds, and walks home with its load (up to 6). You can **Recall** a party early and keep part of its load.
-- **Raid:** open the **Raid** tab during Scheme, pick a target (a stronghold or an ambush at a contested site), optionally attach cards, choose what to steal first, and press **Commit secret raid**. You get one raid per round. Rivals can see *that* you committed, not what.
+- **Gather:** tap a site and press **Send here**, or tap a party under the map and choose a destination. It walks there, works for 8–15 seconds, and walks home with its load (up to 6). You can **Recall** a party early and keep part of its load.
+- **Raid:** open **Raid** (you can draft during Build), pick a target (a stronghold or an ambush at a contested site), optionally attach cards, choose what to steal first, check the attack vs defense preview, then **Review & submit** during Scheme. The status goes Draft → Submitted → Locked → Resolved. You get one raid per round. Rivals can see *that* you submitted, not what.
+- **Feed:** everything that happened to you or in public, with resource changes, points and the reason.
 - **Defend:** barricades (+2, used up when a raid hits) and defense cards committed from the **Cards** tab. Defense cards are secret until a raid hits you.
 - **Trade:** send an offer in the **Trade** tab. The other player accepts or rejects. Trades are final. Promises are not enforced.
 
