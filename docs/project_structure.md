@@ -25,15 +25,19 @@ clan-chaos/
 │       ├── app/
 │       │   ├── layout.tsx       Root layout, viewport and metadata
 │       │   ├── page.tsx         Home: create / join room, how-to-play
-│       │   └── room/[code]/page.tsx   Room page (hands off to RoomClient)
+│       │   ├── room/[code]/page.tsx   Room page (hands off to RoomClient)
+│       │   └── practice/page.tsx      Solo practice match and guided tutorial (no server)
 │       ├── components/
 │       │   ├── RoomClient.tsx   Chooses the screen: join form, lobby, game, results
 │       │   ├── Lobby.tsx        Room code, players, clan picker, ready, host controls
 │       │   ├── Logo.tsx, Toasts.tsx, ConnectionBadge.tsx
-│       │   └── game/            In-match UI (map, panels, overlays; see docs/frontend.md)
+│       │   ├── Onboarding.tsx   First-visit 6-topic intro (reopenable)
+│       │   ├── game/            In-match UI (map, panels, overlays; see docs/frontend.md)
+│       │   └── practice/        PracticeProvider, TutorialOverlay, PracticeClient
 │       ├── hooks/useGame.tsx    GameProvider: socket connection, session resume, state, command sending
 │       ├── lib/                 socket/session/format, plus display logic: phaseInfo, availability, cardInfo,
-│       │                        resourceInfo, raidPlan, resolutionText, objective, feed (unit-tested)
+│       │                        resourceInfo, raidPlan, resolutionText, objective, feed (unit-tested);
+│       │                        lib/practice/: local engine match, bot, tutorial steps, progress flags
 │       ├── styles/globals.css   Tailwind layers and shared component classes
 │       └── tailwind.config.ts   Custom theme (parchment, bark, moss, ember, royal, gold)
 ├── packages/

@@ -6,7 +6,7 @@ import { CLANS, EVENTS, SCORING } from "@clan-chaos/game-content";
 export function PlayersPanel({ view, onSelect }: { view: PlayerView; onSelect: (id: string) => void }) {
   const sorted = [...view.players].sort((a, b) => Number(a.eliminated) - Number(b.eliminated) || b.score - a.score || b.successfulRaids - a.successfulRaids);
   return (
-    <div className="space-y-3" data-testid="players">
+    <div className="space-y-3" data-testid="players" data-tour="players">
       <table className="w-full text-left text-sm">
         <caption className="sr-only">Standings</caption>
         <thead className="text-[11px] uppercase text-bark-500">

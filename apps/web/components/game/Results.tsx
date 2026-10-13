@@ -6,7 +6,7 @@ import { Logo } from "../Logo";
 import { FeedbackForm } from "./FeedbackForm";
 
 export function Results() {
-  const { view, lobby, playerId, emitAck, toast, leave } = useGame();
+  const { view, lobby, playerId, emitAck, toast, leave, mode, practice } = useGame();
   const router = useRouter();
   if (!view?.results) return null;
   const r = view.results;
@@ -69,9 +69,13 @@ export function Results() {
           </div>
         ))}
       </section>
-      <FeedbackForm />
+      {mode === "live" && <FeedbackForm />}
       <div className="flex gap-3">
-        {isHost ? (
+        {practice ? (
+          <button className="btn-primary px-6 py-2.5" onClick={practice.restart}>
+            🔁 Practice again
+          </button>
+        ) : isHost ? (
           <button
             className="btn-primary px-6 py-2.5"
             onClick={async () => {
@@ -91,7 +95,7 @@ export function Results() {
             router.push("/");
           }}
         >
-          Leave
+          {mode === "practice" ? "Home" : "Leave"}
         </button>
       </div>
     </main>

@@ -7,6 +7,7 @@ Next.js 14 (App Router) + React 18 + Tailwind CSS. All screens are client compon
 |---|---|---|
 | `/` | `app/page.tsx` | Home: guest name, Create Room, Join with code, server status, how to play, clan summary |
 | `/room/[code]` | `app/room/[code]/page.tsx` → `RoomClient` | Everything inside a room |
+| `/practice` | `app/practice/page.tsx` → `practice/PracticeClient` | Solo practice match against a bot, with the optional guided tutorial. Never connects to the game server |
 
 `RoomClient` picks the screen from the connection and room state: **join form** (no session) → **Lobby** → **GameScreen** (match running) → **Results** (match ended). If a saved session exists it first tries to resume it.
 
@@ -18,6 +19,8 @@ Next.js 14 (App Router) + React 18 + Tailwind CSS. All screens are client compon
 - `send(command, successMessage?)`: adds a fresh `commandId`, waits for the ack (6 s timeout), retries once with the same id on a timeout, shows an error toast on failure.
 - Stale-update guard: views with a lower `seq` than the last one are ignored. A new match resets the counter.
 - `clockOffset`: `serverNow - Date.now()` from each view, used by `useNow()` so countdowns and party movement follow the server's clock.
+
+`GameContextValue` also carries `mode` (`"live"` or `"practice"`), an optional `getNow` clock override (`useNow` uses it) and optional `practice` hooks. The game screen only uses these to report UI events to the tutorial, open a requested panel and hide Chat and Trade in practice. Every other component works the same in both modes.
 
 `lib/socket.ts` creates the single Socket.IO client (server URL = page hostname + `:4000`, or `NEXT_PUBLIC_SERVER_URL`). `lib/session.ts` handles `localStorage` safely (it works with storage disabled, but then sessions don't survive a reload).
 
@@ -46,6 +49,19 @@ The in-match screen is ordered by importance: **phase & deadline → immediate o
 | `game/FeedbackForm` | Optional post-match feedback (4 questions) on the results screen, sent with `feedback:submit` |
 
 Display logic lives in framework-free modules in `apps/web/lib/` (`phaseInfo`, `availability`, `cardInfo`, `resourceInfo`, `raidPlan`, `resolutionText`, `objective`, `feed`). They only read the player's own `PlayerView` plus shared rule data; the server still validates everything. The raid preview and trip-time estimate call pure helpers exported by the game engine (`previewStrongholdRaid`, `previewAmbush`, `travelDurationMs`), the same functions the server uses, so the preview can't drift from the real calculation.
+
+### Onboarding and practice
+| Piece | Role |
+|---|---|
+| `Onboarding.tsx` | `OnboardingModal` (6 topics, Back/Next/Skip, arrow keys and Escape) and `useAutoOnboarding()`, which opens it once per browser. Numbers come from the rule constants |
+| `lib/practice/match.ts` | `PracticeMatch`: the real `createMatch` / `applyCommand` / `tick` / `buildPlayerView` on an isolated state with a **virtual clock** (`advance`, `advanceUntil`, `skipPhase`). Seeds the tutorial hand (Sneaky Heist, Booby Trap, Eagle-Eye Scout) by swapping with the deck, so no cards are created |
+| `lib/practice/bot.ts` | "Training Dummy" (Mushroom Merchants). It sends ordinary commands through the engine and reads only public information. In round 1 it raids your stronghold with no cards, so the reveal shows a failed raid and its penalty. Later it gathers, repairs, builds barricades, hires mercenaries, and raids or ambushes when its public preview says it can win |
+| `lib/practice/tutorial.ts` | The 14 tutorial steps as data: text built from the live view, `data-tour` anchors, the task, a completion test on the real view or on UI signals, and an optional helper button |
+| `lib/practice/controller.ts` | Helper buttons: fast-forward to a delivery, skip to Scheme, skip to the deadline, finish the round, open a panel |
+| `lib/practice/progress.ts` | `localStorage` flags `clanchaos:onboarding` and `clanchaos:tutorial` (`completed` / `skipped`) |
+| `practice/PracticeProvider` | Supplies the same `GameContext` as a live room from a `PracticeMatch`, plus practice controls (pause, skip, tutorial navigation). The clock only runs when neither the player nor the tutorial holds it |
+| `practice/TutorialOverlay` | Pulsing ring and arrow over the first visible anchor (with no pointer events, so the real controls stay usable), and a panel placed away from the highlight, above an open phone sheet. Back / Next (or "Skip step") / Skip tutorial / minimise |
+| `practice/PracticeClient` | Start screen (name, clan, guided or free), the practice bar (pause/resume, next phase, restart tutorial, exit) and the results screen with "Practice again" |
 
 Eliminated players (and observers) see only the **Feed, Players and Chat** panels and a "spectating" banner.
 

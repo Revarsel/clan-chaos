@@ -2,7 +2,9 @@
 import { useState } from "react";
 import type { PlayerView } from "@clan-chaos/shared";
 import { formatSeconds, phaseInfo } from "@/lib/phaseInfo";
+import { useGame } from "@/hooks/useGame";
 import { RulesSummary } from "../RulesSummary";
+import { OnboardingModal } from "../Onboarding";
 import { Sheet } from "../ui/Sheet";
 
 const TONE = {
@@ -20,6 +22,8 @@ export function PhaseBanner({ view, now, compact }: { view: PlayerView; now: num
   const info = phaseInfo(view);
   const [details, setDetails] = useState(false);
   const [rules, setRules] = useState(false);
+  const [intro, setIntro] = useState(false);
+  const { mode } = useGame();
   const remaining = Math.max(0, info.deadlineAt - now);
   const total = view.phase === "ended" ? 1 : view.phaseDurations[view.phase];
   const pct = Math.max(0, Math.min(100, (remaining / total) * 100));
@@ -29,6 +33,7 @@ export function PhaseBanner({ view, now, compact }: { view: PlayerView; now: num
     <section
       aria-label="Current phase"
       data-testid="phase-banner"
+      data-tour="phase-banner"
       className={`sticky top-0 z-30 -mx-2 border-b-2 border-bark-900 ${tone.band} px-2 pb-2 pt-1.5 text-white shadow-pop md:-mx-3 md:px-3`}
     >
       <div className="flex items-center gap-2 sm:gap-3">
@@ -87,8 +92,26 @@ export function PhaseBanner({ view, now, compact }: { view: PlayerView; now: num
         <div className="text-bark-900">
           <RulesSummary durations={view.phaseDurations} />
           <p className="mt-2 text-xs text-bark-600">Tap any resource, card or ⓘ button for more detail. The Players panel shows the full scoring and tie-breakers.</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              className="btn-plain px-3 py-1.5 text-sm"
+              onClick={() => {
+                setRules(false);
+                setIntro(true);
+              }}
+            >
+              📖 Replay the intro
+            </button>
+            {mode === "live" && (
+              // A new tab, so the live match keeps running here.
+              <a className="btn-plain px-3 py-1.5 text-sm" href="/practice" target="_blank" rel="noopener">
+                🎓 Practice tutorial ↗
+              </a>
+            )}
+          </div>
         </div>
       </Sheet>
+      <OnboardingModal open={intro} onClose={() => setIntro(false)} />
       {details && (
         <div className="mt-1.5 grid gap-1 rounded-lg bg-black/20 p-2 text-xs sm:grid-cols-2 sm:text-sm">
           <div>

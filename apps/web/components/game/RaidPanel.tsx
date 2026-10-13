@@ -358,7 +358,7 @@ export function RaidPanel({
 
       {target && preview && (
         <Step n={target.kind === "player" ? 6 : 5} title="Attack vs defense">
-          <div className="grid gap-2 sm:grid-cols-2" data-testid="raid-preview">
+          <div className="grid gap-2 sm:grid-cols-2" data-testid="raid-preview" data-tour="raid-preview">
             <div className="rounded-lg bg-ember-400/10 p-2">
               <div className="text-xs font-bold uppercase text-ember-600">Your attack (known)</div>
               <div className="font-display text-2xl font-black">{preview.attack}</div>

@@ -57,8 +57,8 @@ function useFeedNotifications(view: PlayerView | null, toast: (k: "info", t: str
 }
 
 export function GameScreen() {
-  const { view, clockOffset, chat, toast } = useGame();
-  const now = useNow(200, clockOffset);
+  const { view, clockOffset, chat, toast, mode, getNow, practice } = useGame();
+  const now = useNow(200, clockOffset, getNow);
   const isDesktop = useMediaQuery("(min-width: 1024px)", true);
   const [primaryTab, setPrimaryTab] = useState<Tab>("actions");
   const [secondaryTab, setSecondaryTab] = useState<Tab>("feed");
@@ -78,11 +78,20 @@ export function GameScreen() {
   // A new round clears last round's raid draft.
   const round = view?.round;
   useEffect(() => setDraft(emptyDraft()), [round]);
+  // Practice tutorial: share the raid draft and open panels it asks for.
+  const reportDraft = practice?.reportDraft;
+  useEffect(() => reportDraft?.(draft), [draft, reportDraft]);
+  const tabRequest = practice?.tabRequest;
+  const openTabRef = useRef<(t: Tab) => void>(() => undefined);
+  useEffect(() => {
+    if (tabRequest) openTabRef.current(tabRequest.tab);
+  }, [tabRequest]);
 
   if (!view) return null;
   const me = view.players.find((p) => p.id === view.youId);
   const spectating = !view.self || !!me?.eliminated;
-  const tabs = TABS.filter((t) => !spectating || t.spectator);
+  // The practice bot does not chat or trade, so those panels are hidden there.
+  const tabs = TABS.filter((t) => (!spectating || t.spectator) && (mode === "live" || (t.id !== "chat" && t.id !== "trade")));
 
   const openTab = (t: Tab) => {
     if (t === "chat") setSeenChat(chat.length);
@@ -91,6 +100,7 @@ export function GameScreen() {
       else setSecondaryTab(t);
     } else setSheetTab(t);
   };
+  openTabRef.current = openTab;
   const select = (kind: "loc" | "player" | "party", id: string) => {
     setSelLoc(kind === "loc" ? id : null);
     setSelPlayer(kind === "player" ? id : null);
@@ -179,7 +189,7 @@ export function GameScreen() {
           <div className="min-w-0 flex-1">
             <ObjectiveStrip view={view} now={now} onGo={goTo} compact={!isDesktop} />
           </div>
-          <ConnectionBadge />
+          {mode === "live" && <ConnectionBadge />}
         </div>
         {spectating ? (
           <div className="rounded-xl border-2 border-bark-800 bg-bark-800 px-3 py-2 text-center font-display text-parchment-100">
@@ -249,6 +259,7 @@ export function GameScreen() {
           <div
             className={`fixed inset-x-0 bottom-14 z-30 max-h-[64dvh] overflow-y-auto rounded-t-2xl border-2 border-b-0 border-bark-800 bg-parchment-100 shadow-card transition-transform ${sheetTab ? "translate-y-0" : "pointer-events-none translate-y-[110%]"}`}
             aria-hidden={!sheetTab}
+            data-mobile-sheet={sheetTab ? "open" : "closed"}
             role="region"
             aria-label={sheetMeta ? `${sheetMeta.label} panel` : undefined}
           >

@@ -26,7 +26,7 @@ Open <http://localhost:3000>. To play with phones on the same Wi-Fi, open `http:
 |---|---|
 | `pnpm dev` | Server and web app in development mode |
 | `pnpm build` then `pnpm start` | Production build and run |
-| `pnpm test` | All 133 tests (unit, integration, simulation) |
+| `pnpm test` | All 140 tests (unit, integration, simulation) |
 | `pnpm test:unit` / `test:integration` / `test:simulation` | One suite |
 | `pnpm lint` / `pnpm typecheck` | ESLint / strict TypeScript |
 | `pnpm check` | Lint + typecheck + tests |
@@ -48,7 +48,7 @@ docs/                  Documentation
 
 ## Status
 
-Everything in the v1.2 specification is implemented: lobby and reconnectable identities, the illustrated map with gathering parties, the economy, all 22 cards, all 4 clan abilities, secret simultaneous raids, trading and chat, random events, upkeep, elimination and spectating, scoring with tie-breakers, results, rematch, and results stored in PostgreSQL. It is verified by 133 automated tests and by a full browser playthrough on desktop and phone-sized screens.
+Everything in the v1.2 specification is implemented: lobby and reconnectable identities, the illustrated map with gathering parties, the economy, all 22 cards, all 4 clan abilities, secret simultaneous raids, trading and chat, random events, upkeep, elimination and spectating, scoring with tie-breakers, results, rematch, and results stored in PostgreSQL. It is verified by 140 automated tests and by a full browser playthrough on desktop and phone-sized screens. New players get a six-card intro and a guided practice tutorial against a bot (`/practice`).
 
 Known limitations: live matches are held in memory (a server restart ends them; there is no crash recovery), the connection is plain HTTP intended for a trusted network, and it hasn't been tested on physical phones. Full details in [docs/features.md](docs/features.md) and [CHECKLIST.md](CHECKLIST.md).
 

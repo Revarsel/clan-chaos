@@ -139,7 +139,7 @@ The game passes if, across at least 5 first-time testers:
 | Costs and consequences appear before commitment | **Pass** | "Pay 3🪙 2🍖" on every action button, "Play now — pay …" on cards, the raid confirmation with cost, penalty and irreversibility |
 | Errors explain how to recover | **Pass after fixes** | Cost errors now say where to get more ("…gathering at farms, the market (Actions) or a trade"); locked-phase errors say when you can act again. Rare server race errors (e.g. "That party is busy") still only state the problem |
 | Hidden information remains hidden | **Pass** | Browser check: the rival sees "has committed a secret raid order" but not the target or card. Unit tests: views and feed never contain other players' cards, resources or targets; the preview ignores hidden defenses |
-| Tutorial steps teach actual mechanics | **Not met: no tutorial exists** | The guided tutorial was paused. What exists (rules summary, objectives, explanations) is built from the real rule constants and the player's real state, so it can't teach wrong mechanics, but it isn't a step-by-step tutorial |
+| Tutorial steps teach actual mechanics | **Pass** (automated) | The `/practice` tutorial runs the real engine against a bot. Each step completes only when the real view shows it happened (a party left, a delivery arrived, the preview beats the fort, the raid is committed, upkeep was paid). Every number in the text comes from the live view or the rule constants. `unit/practice.test.ts` plays every step against the engine. `practice-tutorial.e2e.mjs` plays it through the real UI on a phone and a desktop |
 | Mobile players receive the same explanations | **Pass** (automated, emulated phone) | Same components on all screen sizes; every explanation opens on tap. Not tested on physical devices |
 | No essential rule only through colour or hover | **Pass after fixes** | ⚠ added to resource warnings; the host label and the "Raids" column are now visible text; the legend covers idle parties and party colours. Remaining: on the map, a party's owner is shown only by colour (owner names are listed when you tap the site); SVG tooltips only duplicate visible text or the legend |
 
@@ -150,6 +150,7 @@ The game passes if, across at least 5 first-time testers:
 | `pnpm lint`, `pnpm typecheck` | Clean |
 | `pnpm test` (Vitest: unit, Socket.IO integration, PostgreSQL, simulations) | **133 / 133 passed**, including new feedback tests (rejected before the match ends, empty or oversized answers rejected, stored and updated in PostgreSQL) |
 | `tests/e2e/first-time-player.e2e.mjs`: proxy walkthrough of tasks 1–12 + principles, tester on an iPhone 13 viewport (390×664), rival on desktop 1440×900 | **Baseline: 17 / 24** (failures: objective not reachable before or during play ×3, fort off-screen on phone, no "when can I spend it", no recovery hint, no-food rule missing). **After fixes: 24 / 24**, no browser console errors |
+| `tests/e2e/practice-tutorial.e2e.mjs`: first-visit intro, then the whole guided tutorial through the real controls, on an iPhone 13 viewport and on 1440×900 | **44 / 44**, three runs in a row. It also checks that the tutorial panel never covers the control it asks for (Playwright refuses to click covered elements; this found two placement bugs, now fixed) and that there are no page errors |
 | `tests/e2e/post-match-feedback.e2e.mjs`: short full match, then the feedback form on the phone | Pass: 4 questions shown, Send disabled until an answer exists, thank-you shown; the row was verified in the `PlaytestFeedback` table |
 
 The e2e scripts need Playwright, which is not a project dependency. To run them: `pnpm add -D playwright && npx playwright install chromium`, start the game as described at the top of each script, then run `node tests/e2e/<script>.mjs`.
@@ -213,7 +214,7 @@ Also record the device and browser, whether the tester has played similar games,
 
 ## 10. Prioritised further improvements
 1. **Run 5 human sessions** with this plan before changing anything else; fix the top recurring issues first.
-2. **Guided first match / practice mode** (paused earlier). Teach gathering → cards → raid → reveal with the real engine in an isolated, offline state.
+2. ~~Guided first match / practice mode~~ Done: `/practice` (see `features.md`). Next, watch testers use it: do they read the panel, and does a first raid that wins thanks to the preview leave the right expectations for real matches?
 3. **Make first-round raids less discouraging to read:** when the verdict is "Cannot succeed", show the concrete ways up (mercenaries +2, attack cards) with their costs. Explanation only, no balance change.
 4. **Let players keep the reveal open:** a "Keep results open" option, or reopen automatically in the Feed at the start of the next round.
 5. **Phone map legibility:** pinch-zoom or a list view of sites; owner names or emblems on party markers so ownership isn't colour-only.

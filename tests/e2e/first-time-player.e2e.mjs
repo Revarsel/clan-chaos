@@ -30,6 +30,7 @@ const text = (p, sel) => p.locator(sel).first().innerText().catch(() => "");
 const tab = (p, name) => p.click(`nav[aria-label='Game panels'] button:has-text('${name}')`);
 
 const host = await mk({ viewport: { width: 1440, height: 900 } }); // the "other player"
+await host.addInitScript(() => localStorage.setItem("clanchaos:onboarding", "completed"));
 const phone = await mk({ ...devices["iPhone 13"], deviceScaleFactor: 1 }); // the first-time tester
 
 // --- Joining by link (the usual invite path) ---
@@ -41,6 +42,10 @@ await host.waitForURL(/room/);
 const code = host.url().split("/room/")[1];
 await phone.goto(`${BASE}/room/${code}`);
 await phone.waitForSelector("text=Join room");
+// A newcomer arriving by invite link sees the short intro first and reads it through.
+const intro = phone.locator("[data-testid=onboarding]");
+check("T1", "First-visit intro shown to a newcomer joining by link", await intro.waitFor({ timeout: 4000 }).then(() => true, () => false));
+for (let i = 0; i < 6 && (await intro.isVisible()); i++) await phone.click("[data-testid=onboarding-next]");
 const joinText = await text(phone, "main");
 check("T1", "Objective reachable before joining (link invite)", /most (victory )?points/i.test(joinText), joinText);
 await phone.fill("input[placeholder='Guest name']", "Newcomer");

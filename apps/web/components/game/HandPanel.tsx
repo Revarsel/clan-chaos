@@ -136,6 +136,11 @@ function CardActions({ view, card, now, onUseInRaid, onDone }: { view: PlayerVie
 export function HandPanel({ view, now, onUseInRaid }: { view: PlayerView; now: number; onUseInRaid: (c: CardInstance) => void }) {
   const self = view.self!;
   const [open, setOpen] = useState<CardInstance | null>(null);
+  const { practice } = useGame();
+  const inspect = (c: CardInstance) => {
+    setOpen(c);
+    practice?.signal("card-details");
+  };
   const openCard = open && self.hand.find((c) => c.uid === open.uid);
   return (
     <div data-tour="hand">
@@ -159,7 +164,7 @@ export function HandPanel({ view, now, onUseInRaid }: { view: PlayerView; now: n
               {cards.map((c) => {
                 const a = cardAvailability(view, c, now);
                 const text = a.ok ? (g.timing === "attack" ? "Ready for a raid" : g.timing === "defense" ? "Can commit now" : "Can play now") : a.reason;
-                return <CardView key={c.uid} cardId={c.cardId} status={{ ok: a.ok, text }} onClick={() => setOpen(c)} />;
+                return <CardView key={c.uid} cardId={c.cardId} status={{ ok: a.ok, text }} onClick={() => inspect(c)} />;
               })}
             </div>
           </section>

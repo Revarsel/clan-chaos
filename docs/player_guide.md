@@ -6,6 +6,8 @@ How to play Clan Chaos, for you and your friends. The exact numbers are in `rule
 Finish with the most **victory points** after 8 rounds. Points come from successful raids (+2), destroying forts (+3), eliminating rivals (+4), event bonuses, an intact fort at the end (+2) and leftover resources (+1 per 5 of each kind).
 
 ## Getting started
+New to the game? Tap **🎓 Practice tutorial** on the home page. It is a 5-minute guided round against a bot, runs only in your browser, and you can skip it at any time. The **📖 1-minute intro** gives the basics in six short cards.
+
 1. One person opens the game and taps **Create Room**, then shares the 6-character code (or the link).
 2. Everyone else taps **Join** and types the code.
 3. Pick a clan, tap **I'm ready**. The host taps **Start match** (needs 2–8 players, all ready).

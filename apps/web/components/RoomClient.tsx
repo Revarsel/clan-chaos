@@ -9,6 +9,7 @@ import { Results } from "./game/Results";
 import { Toasts } from "./Toasts";
 import { Logo } from "./Logo";
 import { RulesSummary } from "./RulesSummary";
+import { OnboardingModal, useAutoOnboarding } from "./Onboarding";
 
 export function RoomClient({ code }: { code: string }) {
   return (
@@ -37,12 +38,29 @@ function RoomBody() {
   }
   if (!joined) {
     if (!checked && loadSession(code)) return <Centered>Reconnecting to room {code}…</Centered>;
-    return <JoinForm />;
+    return (
+      <>
+        <JoinForm />
+        <AutoIntro />
+      </>
+    );
   }
   if (view && view.phase === "ended" && view.results) return <Results />;
   if (view && lobby?.status !== "lobby") return <GameScreen />;
-  if (lobby) return <Lobby />;
+  if (lobby)
+    return (
+      <>
+        <Lobby />
+        <AutoIntro />
+      </>
+    );
   return <Centered>Loading room…</Centered>;
+}
+
+/** First visit via an invite link: show the short intro once, before the match starts. */
+function AutoIntro() {
+  const [open, setOpen] = useAutoOnboarding();
+  return <OnboardingModal open={open} onClose={() => setOpen(false)} />;
 }
 
 function Centered({ children }: { children: React.ReactNode }) {

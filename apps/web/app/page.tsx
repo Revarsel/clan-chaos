@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Ack, SessionInfo } from "@clan-chaos/shared";
 import { CLAN_LIST } from "@clan-chaos/game-content";
@@ -7,6 +8,7 @@ import { getSocket } from "@/lib/socket";
 import { lastName, saveSession } from "@/lib/session";
 import { Logo } from "@/components/Logo";
 import { RulesSummary } from "@/components/RulesSummary";
+import { OnboardingModal, useAutoOnboarding } from "@/components/Onboarding";
 
 function call(event: "room:create" | "room:join", payload: unknown): Promise<Ack<SessionInfo>> {
   const socket = getSocket();
@@ -29,6 +31,7 @@ export default function Home() {
   const [busy, setBusy] = useState<"create" | "join" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [online, setOnline] = useState<boolean | null>(null);
+  const [intro, setIntro] = useAutoOnboarding();
 
   useEffect(() => {
     setName(lastName());
@@ -97,6 +100,18 @@ export default function Home() {
             </button>
           </div>
           {error && <p className="mt-3 rounded-lg bg-ember-500/15 px-3 py-2 text-sm font-semibold text-ember-600">{error}</p>}
+          <div className="mt-4 rounded-xl border-2 border-royal-500/30 bg-royal-500/10 p-3 text-sm">
+            <div className="font-display font-bold">New here?</div>
+            <p className="mb-2 text-bark-700">Learn by playing a short guided match against a bot. It runs in your browser only.</p>
+            <div className="flex flex-wrap gap-2">
+              <Link className="btn-primary px-4 py-2" href="/practice" data-testid="practice-link">
+                🎓 Practice tutorial
+              </Link>
+              <button className="btn-plain px-4 py-2" onClick={() => setIntro(true)}>
+                📖 1-minute intro
+              </button>
+            </div>
+          </div>
           <p className="mt-4 text-xs text-bark-600">
             Server:{" "}
             {online === null ? "connecting…" : online ? <span className="text-moss-600">● online</span> : <span className="text-ember-600">● unreachable</span>}
@@ -118,6 +133,7 @@ export default function Home() {
           </div>
         </section>
       </div>
+      <OnboardingModal open={intro} onClose={() => setIntro(false)} />
     </main>
   );
 }

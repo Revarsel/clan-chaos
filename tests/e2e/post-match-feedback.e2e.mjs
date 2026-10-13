@@ -11,6 +11,8 @@ const browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePa
 const errors = [];
 const mk = async (opts) => {
   const p = await (await browser.newContext(opts)).newPage();
+  // Both players have already seen the first-visit intro; this script is about the feedback form.
+  await p.addInitScript(() => localStorage.setItem("clanchaos:onboarding", "completed"));
   p.on("pageerror", (e) => errors.push(e.message));
   return p;
 };

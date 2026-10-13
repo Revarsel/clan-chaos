@@ -119,7 +119,9 @@ See `card_reference.md` for all card texts.
 | Responsive layout: desktop map-centred; phones with pinned banner, bottom tab bar and bottom sheets | ✅ | Verified at 390×664 and 1440×900 |
 | One-minute rules summary on join form, lobby, home page and behind an in-game 📖 Rules button | ✅ | `RulesSummary`, built from the rule constants |
 | Optional post-match feedback form (4 questions), stored in PostgreSQL | ✅ | `FeedbackForm`, `PlaytestFeedback` table |
-| Guided onboarding / practice tutorial | ❌ | Started, then paused at your request; only the shared groundwork exists |
+| First-visit intro (6 topics: objective; gold/materials/food; parties and map; fort, cards and raids; phases and deadlines; scoring, elimination and match end) with Back/Next/Skip | ✅ | `Onboarding.tsx`. Opens once on the home page, join form or lobby; reopen from home ("1-minute intro") or the in-game 📖 Rules sheet. Completion is stored in `localStorage` (no accounts) |
+| Guided practice tutorial (`/practice`): 14 steps covering HUD and fort → send a party → delivery and capacity → inspect a card → phases → raid target → attack-vs-defense preview → secret submission and deadline → resolution → upkeep → scoring and match end | ✅ | Runs the real engine in the browser against a bot, isolated from the server. Spotlight ring, arrow and a small panel; the player uses the real game controls. Clock paused during the tutorial; skippable, minimisable, restartable |
+| Free practice against the bot | ✅ | Same page without the tutorial (or after it): pause, resume and skip to the next phase. Chat and trading are hidden there |
 
 ## Protocol, security, persistence
 | Feature | Status | Notes |

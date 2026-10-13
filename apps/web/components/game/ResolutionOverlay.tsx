@@ -85,7 +85,7 @@ export function ResolutionOverlay({ view, now, onOpenFeed }: { view: PlayerView;
   if (!active || dismissed) return null;
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center bg-bark-900/60 p-3 backdrop-blur-sm sm:items-center" onClick={() => setDismissed(true)} role="dialog" aria-modal="true" aria-label="Raid results">
-      <div className="max-h-[85dvh] w-full max-w-3xl overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+      <div className="max-h-[85dvh] w-full max-w-3xl overflow-y-auto" onClick={(e) => e.stopPropagation()} data-tour="resolution">
         <div className="mb-2 text-center font-display text-2xl font-black text-gold-400 sm:text-3xl" style={{ textShadow: "0 3px 0 #3d2514" }}>
           ⚔️ Round {view.round}: raids revealed
         </div>

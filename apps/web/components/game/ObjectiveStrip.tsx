@@ -26,7 +26,7 @@ export function ObjectiveStrip({
   if (!list.length) return null;
   const shown = compact && !more ? list.slice(0, 1) : list;
   return (
-    <section aria-label="Suggested next steps" className="flex flex-col gap-1 sm:flex-row sm:flex-wrap" data-testid="objectives">
+    <section aria-label="Suggested next steps" className="flex flex-col gap-1 sm:flex-row sm:flex-wrap" data-testid="objectives" data-tour="objectives">
       {shown.map((o, i) => (
         <div key={o.id} className={`flex items-center gap-2 rounded-xl border-2 px-2.5 py-1 text-sm ${TONE[o.tone]}`}>
           <span aria-hidden>{o.done ? "✅" : i === 0 ? "🎯" : "💡"}</span>

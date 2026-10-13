@@ -2,6 +2,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { Ack, ChatMessage, GameCommand, LobbyState, PlayerView, SessionInfo } from "@clan-chaos/shared";
 import { getSocket } from "@/lib/socket";
+import type { RaidDraft } from "@/lib/raidPlan";
 import { clearSession, loadSession, newCommandId, saveSession } from "@/lib/session";
 
 export interface Toast {
@@ -12,7 +13,24 @@ export interface Toast {
 
 export type ConnectionStatus = "connecting" | "connected" | "reconnecting" | "offline";
 
-interface GameContextValue {
+/** Hooks the practice tutorial uses to follow what the player does; absent in live matches. */
+export interface PracticeHooks {
+  /** The player did something the tutorial waits for that is not visible in the game state. */
+  signal: (name: "card-details") => void;
+  /** The current (unsubmitted) raid draft, so the tutorial can read the attack preview. */
+  reportDraft: (draft: RaidDraft) => void;
+  /** Asks the game screen to open a panel; `n` changes on every request. */
+  tabRequest: { tab: "cards" | "raid" | "actions" | "players"; n: number } | null;
+  /** Starts a fresh practice match. */
+  restart: () => void;
+}
+
+export interface GameContextValue {
+  /** "practice" = an isolated local match against a bot; it never talks to the server. */
+  mode: "live" | "practice";
+  /** Clock override (practice mode uses a pausable virtual clock). */
+  getNow?: () => number;
+  practice?: PracticeHooks;
   code: string;
   status: ConnectionStatus;
   joined: boolean;
@@ -46,7 +64,7 @@ type AckEvent =
   | "game:sync"
   | "feedback:submit";
 
-const GameContext = createContext<GameContextValue | null>(null);
+export const GameContext = createContext<GameContextValue | null>(null);
 
 export function useGame(): GameContextValue {
   const ctx = useContext(GameContext);
@@ -209,6 +227,7 @@ export function GameProvider({ code, children }: { code: string; children: React
   const send = useCallback(async (command: GameCommand, success?: string) => (await sendCommand(command, success)).ok, [sendCommand]);
 
   const value: GameContextValue = {
+    mode: "live",
     code,
     status,
     joined,
@@ -232,12 +251,14 @@ export function GameProvider({ code, children }: { code: string; children: React
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
 }
 
-/** Re-renders every `ms` so countdowns and party positions animate smoothly. */
-export function useNow(ms = 250, offset = 0): number {
-  const [now, setNow] = useState(() => Date.now() + offset);
+/** Re-renders every `ms` so countdowns and party positions animate smoothly. `getNow` overrides the clock. */
+export function useNow(ms = 250, offset = 0, getNow?: () => number): number {
+  const read = useCallback(() => (getNow ? getNow() : Date.now() + offset), [getNow, offset]);
+  const [now, setNow] = useState(read);
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now() + offset), ms);
+    setNow(read());
+    const id = setInterval(() => setNow(read()), ms);
     return () => clearInterval(id);
-  }, [ms, offset]);
+  }, [ms, read]);
   return now;
 }
